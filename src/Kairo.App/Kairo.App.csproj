@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>$(WindowsTfm)</TargetFramework>
+    <RootNamespace>Kairo.App</RootNamespace>
+    <AssemblyName>Kairo</AssemblyName>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationIcon>Assets\kairo.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Description>Kairo – KI-Computersteuerung für Windows</Description>
+    <Product>Kairo</Product>
+    <NeutralLanguage>de-CH</NeutralLanguage>
+    <SatelliteResourceLanguages>de;en</SatelliteResourceLanguages>
+    <!-- WPF app: per-monitor DPI awareness belongs in app.manifest (the WinForms analyzer does not apply). -->
+    <NoWarn>$(NoWarn);WFO0003</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- WinForms is only used for the tray icon and screen info; keep WPF types unambiguous. -->
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Kairo.Windows\Kairo.Windows.csproj" />
+    <ProjectReference Include="..\Kairo.Core\Kairo.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\kairo.ico" />
+    <Resource Include="Assets\kairo-paused.ico" />
+    <Resource Include="Assets\kairo-logo.png" />
+    <Resource Include="Assets\kairo-logo-64.png" />
+    <Content Include="Assets\kairo.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Link="Assets\kairo.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Kairo.Windows.Tests" />
+    <InternalsVisibleTo Include="Kairo.E2E.Tests" />
+  </ItemGroup>
+
+</Project>

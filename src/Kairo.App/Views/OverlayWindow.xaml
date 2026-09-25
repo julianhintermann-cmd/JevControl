@@ -1,0 +1,265 @@
+<Window x:Class="Kairo.App.Views.OverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:c="clr-namespace:Kairo.App.Controls"
+        xmlns:vm="clr-namespace:Kairo.App.ViewModels"
+        Title="Kairo"
+        Width="720"
+        SizeToContent="Height"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ShowActivated="True"
+        UseLayoutRounding="True"
+        FontFamily="{StaticResource Kairo.Font}"
+        Foreground="{DynamicResource Kairo.Text}"
+        Background="{DynamicResource Kairo.Overlay.Background}">
+  <WindowChrome.WindowChrome>
+    <WindowChrome CaptionHeight="0" GlassFrameThickness="-1" ResizeBorderThickness="0" CornerRadius="0" UseAeroCaptionButtons="False" />
+  </WindowChrome.WindowChrome>
+
+  <Window.Resources>
+    <Style x:Key="StepList" TargetType="ItemsControl">
+      <Setter Property="ItemTemplate">
+        <Setter.Value>
+          <DataTemplate DataType="{x:Type vm:StepItem}">
+            <Grid Margin="0,3">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="22" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <TextBlock Text="{Binding Glyph}" Style="{StaticResource Kairo.Text.Icon}" FontSize="12" Foreground="{DynamicResource Kairo.Text.Secondary}" VerticalAlignment="Top" Margin="0,2,0,0" />
+              <TextBlock Grid.Column="1" Text="{Binding Text}" Style="{StaticResource Kairo.Text.Caption}" />
+            </Grid>
+          </DataTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </Window.Resources>
+
+  <Border x:Name="Frame" BorderThickness="1" BorderBrush="{DynamicResource Kairo.Control.Stroke}" CornerRadius="8">
+    <Grid x:Name="ContentRoot" Margin="16,14,16,12">
+      <Grid.RenderTransform>
+        <TranslateTransform x:Name="SlideTransform" Y="0" />
+      </Grid.RenderTransform>
+      <StackPanel>
+
+        <!-- ================================================= header -->
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+
+          <Image Source="/Kairo;component/Assets/kairo-logo-64.png" Width="28" Height="28" VerticalAlignment="Top" Margin="0,4,12,0"
+                 RenderOptions.BitmapScalingMode="HighQuality" ToolTip="Kairo" />
+
+          <!-- Input -->
+          <TextBox x:Name="InstructionBox" Grid.Column="1"
+                   Text="{Binding Instruction, UpdateSourceTrigger=PropertyChanged}"
+                   c:Ui.Placeholder="Was soll Kairo für dich erledigen?"
+                   FontSize="18" MinHeight="40" MaxHeight="180" Padding="4,6"
+                   AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                   Background="Transparent" BorderThickness="0"
+                   AutomationProperties.Name="Anweisung an Kairo"
+                   PreviewKeyDown="OnInstructionKeyDown"
+                   Visibility="{Binding Mode, Converter={StaticResource EnumToVisibility}, ConverterParameter=Input}" />
+
+          <!-- Running / other modes: status line -->
+          <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="4,0,0,0"
+                      Visibility="{Binding Mode, Converter={StaticResource EnumToVisibility}, ConverterParameter='Running,Approval,Question'}">
+            <TextBlock Text="{Binding StatusText}" Style="{StaticResource Kairo.Text.BodyStrong}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
+                       AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="Status" />
+            <TextBlock Text="{Binding Instruction}" Style="{StaticResource Kairo.Text.Caption}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+          </StackPanel>
+
+          <!-- Result: headline -->
+          <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0,0,0"
+                      Visibility="{Binding Mode, Converter={StaticResource EnumToVisibility}, ConverterParameter=Result}">
+            <TextBlock FontSize="18" Margin="0,0,10,0">
+              <TextBlock.Style>
+                <Style TargetType="TextBlock" BasedOn="{StaticResource Kairo.Text.Icon}">
+                  <Setter Property="Text" Value="&#xEA39;" />
+                  <Setter Property="Foreground" Value="{DynamicResource Kairo.Danger}" />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding ResultSuccess}" Value="True">
+                      <Setter Property="Text" Value="&#xE930;" />
+                      <Setter Property="Foreground" Value="{DynamicResource Kairo.Success}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </TextBlock.Style>
+            </TextBlock>
+            <TextBlock VerticalAlignment="Center">
+              <TextBlock.Style>
+                <Style TargetType="TextBlock" BasedOn="{StaticResource Kairo.Text.BodyStrong}">
+                  <Setter Property="Text" Value="Nicht abgeschlossen" />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding ResultSuccess}" Value="True">
+                      <Setter Property="Text" Value="Erledigt" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </TextBlock.Style>
+            </TextBlock>
+          </StackPanel>
+
+          <!-- Target application chip -->
+          <Border Grid.Column="2" Style="{StaticResource Kairo.Badge}" Margin="12,0,6,0" Padding="8,4" MaxWidth="220"
+                  Visibility="{Binding TargetAppName, Converter={StaticResource NotNullToVisibility}}"
+                  ToolTip="Kairo arbeitet in diesem Fenster">
+            <StackPanel Orientation="Horizontal">
+              <Image Source="{Binding TargetAppIcon}" Width="16" Height="16" Margin="0,0,6,0" RenderOptions.BitmapScalingMode="HighQuality" />
+              <TextBlock Text="{Binding TargetAppName}" Style="{StaticResource Kairo.Text.Caption}" Foreground="{DynamicResource Kairo.Accent.Foreground}"
+                         TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" VerticalAlignment="Center" />
+            </StackPanel>
+          </Border>
+
+          <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Top">
+            <Border Style="{StaticResource Kairo.Badge}" Background="{DynamicResource Kairo.Warning.Subtle}" Margin="0,4,6,0"
+                    Visibility="{Binding ScreenshotActive, Converter={StaticResource BoolToVisibility}}"
+                    ToolTip="Ein Screenshot des Fensters wurde zur Analyse an das Vision-Modell gesendet (Passwortfelder maskiert).">
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Text="&#xE722;" Style="{StaticResource Kairo.Text.Icon}" FontSize="12" Foreground="{DynamicResource Kairo.Warning}" Margin="0,0,4,0" />
+                <TextBlock Text="Screenshot" Style="{StaticResource Kairo.Text.Caption}" Foreground="{DynamicResource Kairo.Warning}" />
+              </StackPanel>
+            </Border>
+            <Button Style="{StaticResource Kairo.Button.Icon}" c:Ui.Icon="&#xE713;" Command="{Binding OpenSettingsCommand}" ToolTip="Einstellungen"
+                    AutomationProperties.Name="Einstellungen"
+                    Visibility="{Binding Mode, Converter={StaticResource EnumToVisibility}, ConverterParameter='Input,Result'}" />
+            <Button Style="{StaticResource Kairo.Button}" c:Ui.Icon="&#xE711;" Content="Abbrechen" Command="{Binding CancelCommand}" Margin="4,0,0,0"
+                    ToolTip="Aufgabe sofort stoppen (Strg + Alt + Umschalt + K)" AutomationProperties.Name="Aufgabe abbrechen"
+                    Visibility="{Binding Mode, Converter={StaticResource EnumToVisibility}, ConverterParameter='Running,Approval,Question'}" />
+          </StackPanel>
+        </Grid>
+
+        <!-- ================================================= progress -->
+        <ProgressBar Margin="0,12,0,0" Value="{Binding Progress}" IsIndeterminate="{Binding IsProgressIndeterminate}" Maximum="100"
+                     Visibility="{Binding Mode, Converter={StaticResource EnumToVisibility}, ConverterParameter='Running,Approval,Question'}" />
+
+        <!-- ================================================= banner -->
+        <Border CornerRadius="6" Padding="12,8" Margin="0,12,0,0"
+                Visibility="{Binding Banner, Converter={StaticResource NotNullToVisibility}}">
+          <Border.Style>
+            <Style TargetType="Border">
+              <Setter Property="Background" Value="{DynamicResource Kairo.Accent.Subtle}" />
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding BannerIsError}" Value="True">
+                  <Setter Property="Background" Value="{DynamicResource Kairo.Warning.Subtle}" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Border.Style>
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="&#xE7BA;" Style="{StaticResource Kairo.Text.Icon}" Margin="0,0,10,0" Foreground="{DynamicResource Kairo.Warning}" />
+            <TextBlock Grid.Column="1" Text="{Binding Banner}" Style="{StaticResource Kairo.Text.Body}" VerticalAlignment="Center" />
+            <Button Grid.Column="2" Content="Einstellungen" Command="{Binding OpenSettingsCommand}" Margin="12,0,0,0" />
+          </Grid>
+        </Border>
+
+        <!-- ================================================= running: recent steps -->
+        <Grid Margin="0,10,0,0" Visibility="{Binding Mode, Converter={StaticResource EnumToVisibility}, ConverterParameter=Running}">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+          <Button Style="{StaticResource Kairo.Button.Link}" FontSize="12" HorizontalAlignment="Left" Command="{Binding ToggleDetailsCommand}"
+                  Content="{Binding StepsSummary}" />
+          <ScrollViewer Grid.Row="1" MaxHeight="150" Margin="0,6,0,0" VerticalScrollBarVisibility="Auto"
+                        Visibility="{Binding ShowDetails, Converter={StaticResource BoolToVisibility}}">
+            <ItemsControl ItemsSource="{Binding Steps}" Style="{StaticResource StepList}" />
+          </ScrollViewer>
+        </Grid>
+
+        <!-- ================================================= approval card -->
+        <Border Style="{StaticResource Kairo.Card.Solid}" Margin="0,12,0,0" Padding="16,14"
+                Visibility="{Binding Mode, Converter={StaticResource EnumToVisibility}, ConverterParameter=Approval}">
+          <StackPanel>
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="&#xEA18;" FontSize="18" Margin="0,0,10,0">
+                <TextBlock.Style>
+                  <Style TargetType="TextBlock" BasedOn="{StaticResource Kairo.Text.Icon}">
+                    <Setter Property="Foreground" Value="{DynamicResource Kairo.Warning}" />
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding ApprovalIsIrreversible}" Value="True">
+                        <Setter Property="Foreground" Value="{DynamicResource Kairo.Danger}" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </TextBlock.Style>
+              </TextBlock>
+              <TextBlock Text="{Binding ApprovalTitle}" Style="{StaticResource Kairo.Text.BodyStrong}" VerticalAlignment="Center" />
+              <Border Style="{StaticResource Kairo.Badge}" Margin="10,0,0,0" Background="{DynamicResource Kairo.Warning.Subtle}">
+                <TextBlock Text="{Binding ApprovalRisk}" Style="{StaticResource Kairo.Text.Caption}" Foreground="{DynamicResource Kairo.Warning}" />
+              </Border>
+            </StackPanel>
+            <TextBlock Text="{Binding ApprovalDescription}" Style="{StaticResource Kairo.Text.Body}" Margin="28,8,0,0" AutomationProperties.LiveSetting="Assertive" />
+            <TextBlock Text="{Binding ApprovalReasons}" Style="{StaticResource Kairo.Text.Caption}" Margin="28,6,0,0"
+                       Visibility="{Binding ApprovalReasons, Converter={StaticResource NotNullToVisibility}}" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+              <Button Content="Ablehnen" Command="{Binding DenyCommand}" MinWidth="110" IsCancel="True" />
+              <Button Content="Für diese Aufgabe erlauben" Command="{Binding AllowForTaskCommand}" Margin="8,0,0,0"
+                      Visibility="{Binding CanAllowForTask, Converter={StaticResource BoolToVisibility}}" />
+              <Button Content="Erlauben" Command="{Binding AllowCommand}" Style="{StaticResource Kairo.Button.Accent}" MinWidth="110" Margin="8,0,0,0" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <!-- ================================================= question card -->
+        <Border Style="{StaticResource Kairo.Card.Solid}" Margin="0,12,0,0" Padding="16,14"
+                Visibility="{Binding Mode, Converter={StaticResource EnumToVisibility}, ConverterParameter=Question}">
+          <StackPanel>
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="&#xE897;" Style="{StaticResource Kairo.Text.Icon}" FontSize="18" Margin="0,0,10,0" Foreground="{DynamicResource Kairo.Accent.Foreground}" />
+              <TextBlock Text="Kairo hat eine Rückfrage" Style="{StaticResource Kairo.Text.BodyStrong}" VerticalAlignment="Center" />
+            </StackPanel>
+            <TextBlock Text="{Binding Question}" Style="{StaticResource Kairo.Text.Body}" Margin="28,8,0,0" AutomationProperties.LiveSetting="Assertive" />
+            <Grid Margin="28,12,0,0">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <TextBox x:Name="AnswerBox" Text="{Binding AnswerText, UpdateSourceTrigger=PropertyChanged}" c:Ui.Placeholder="Deine Antwort …"
+                       PreviewKeyDown="OnAnswerKeyDown" AutomationProperties.Name="Antwort" />
+              <Button Grid.Column="1" Content="Antworten" Style="{StaticResource Kairo.Button.Accent}" Command="{Binding SendAnswerCommand}" Margin="8,0,0,0" />
+            </Grid>
+          </StackPanel>
+        </Border>
+
+        <!-- ================================================= result card -->
+        <StackPanel Margin="0,10,0,0" Visibility="{Binding Mode, Converter={StaticResource EnumToVisibility}, ConverterParameter=Result}">
+          <TextBlock Text="{Binding ResultMessage}" Style="{StaticResource Kairo.Text.Body}" Margin="40,0,0,0" AutomationProperties.LiveSetting="Assertive" />
+          <TextBlock Text="{Binding ResultDetails}" Style="{StaticResource Kairo.Text.Caption}" Margin="40,6,0,0" />
+          <ScrollViewer MaxHeight="160" Margin="40,8,0,0" VerticalScrollBarVisibility="Auto"
+                        Visibility="{Binding ShowDetails, Converter={StaticResource BoolToVisibility}}">
+            <ItemsControl ItemsSource="{Binding Steps}" Style="{StaticResource StepList}" />
+          </ScrollViewer>
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Content="Protokoll" c:Ui.Icon="&#xE81C;" Command="{Binding ToggleDetailsCommand}" Style="{StaticResource Kairo.Button.Subtle}" />
+            <Button Content="Neue Aufgabe" c:Ui.Icon="&#xE710;" Command="{Binding NewTaskCommand}" Margin="8,0,0,0" />
+            <Button Content="Schließen" Command="{Binding CloseCommand}" Style="{StaticResource Kairo.Button.Accent}" Margin="8,0,0,0" MinWidth="100" />
+          </StackPanel>
+        </StackPanel>
+
+        <!-- ================================================= footer (input mode) -->
+        <Grid Margin="40,8,0,0" Visibility="{Binding Mode, Converter={StaticResource EnumToVisibility}, ConverterParameter=Input}">
+          <TextBlock Style="{StaticResource Kairo.Text.Caption}" Foreground="{DynamicResource Kairo.Text.Tertiary}">
+            <Run Text="Enter" FontWeight="SemiBold" /><Run Text=" ausführen  ·  " />
+            <Run Text="Umschalt + Enter" FontWeight="SemiBold" /><Run Text=" neue Zeile  ·  " />
+            <Run Text="Esc" FontWeight="SemiBold" /><Run Text=" schließen" />
+          </TextBlock>
+          <TextBlock HorizontalAlignment="Right" Style="{StaticResource Kairo.Text.Caption}" Foreground="{DynamicResource Kairo.Text.Tertiary}"
+                     Text="Jev · OpenRouter" ToolTip="Planung über OpenRouter, schnelle Entscheidungen mit TypeSafe Jev" />
+        </Grid>
+      </StackPanel>
+    </Grid>
+  </Border>
+</Window>

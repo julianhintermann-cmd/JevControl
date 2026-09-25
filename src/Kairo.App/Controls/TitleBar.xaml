@@ -1,0 +1,24 @@
+<UserControl x:Class="Kairo.App.Controls.TitleBar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Height="40">
+  <Grid Background="Transparent">
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="Auto" />
+      <ColumnDefinition Width="*" />
+      <ColumnDefinition Width="Auto" />
+    </Grid.ColumnDefinitions>
+    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
+      <Image Source="/Kairo;component/Assets/kairo-logo-64.png" Width="18" Height="18" Margin="0,0,10,0" RenderOptions.BitmapScalingMode="HighQuality" />
+      <TextBlock x:Name="TitleText" Style="{StaticResource Kairo.Text.Caption}" Foreground="{DynamicResource Kairo.Text}" VerticalAlignment="Center" />
+    </StackPanel>
+    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top">
+      <Button x:Name="MinimizeButton" Style="{StaticResource Kairo.Button.Caption}" Content="&#xE921;" Click="OnMinimize"
+              WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Minimieren" />
+      <Button x:Name="MaximizeButton" Style="{StaticResource Kairo.Button.Caption}" Content="&#xE922;" Click="OnMaximize"
+              WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Maximieren" />
+      <Button Style="{StaticResource Kairo.Button.CaptionClose}" Content="&#xE8BB;" Click="OnClose"
+              WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Schließen" />
+    </StackPanel>
+  </Grid>
+</UserControl>

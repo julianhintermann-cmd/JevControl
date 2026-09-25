@@ -1,0 +1,22 @@
+<Application x:Class="Kairo.App.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:Kairo.App.Controls"
+             ShutdownMode="OnExplicitShutdown">
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <!-- Index 0 is replaced at runtime by ThemeService (Light/Dark). -->
+        <ResourceDictionary Source="Themes/Colors.Light.xaml" />
+        <ResourceDictionary Source="Themes/Styles.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+      <c:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+      <c:BoolToVisibilityConverter x:Key="InverseBoolToVisibility" Invert="True" />
+      <c:NullToVisibilityConverter x:Key="NullToVisibility" />
+      <c:NullToVisibilityConverter x:Key="NotNullToVisibility" Invert="True" />
+      <c:InverseBoolConverter x:Key="InverseBool" />
+      <c:EnumEqualsConverter x:Key="EnumEquals" />
+      <c:EnumToVisibilityConverter x:Key="EnumToVisibility" />
+    </ResourceDictionary>
+  </Application.Resources>
+</Application>

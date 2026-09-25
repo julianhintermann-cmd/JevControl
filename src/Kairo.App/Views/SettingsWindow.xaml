@@ -1,0 +1,719 @@
+<Window x:Class="Kairo.App.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:c="clr-namespace:Kairo.App.Controls"
+        xmlns:vm="clr-namespace:Kairo.App.ViewModels"
+        xmlns:s="clr-namespace:Kairo.Core.Settings;assembly=Kairo.Core"
+        Title="Kairo – Einstellungen"
+        Width="1080" Height="760" MinWidth="820" MinHeight="560"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        UseLayoutRounding="True"
+        FontFamily="{StaticResource Kairo.Font}"
+        Foreground="{DynamicResource Kairo.Text}"
+        Background="{DynamicResource Kairo.Window.Background}">
+  <WindowChrome.WindowChrome>
+    <WindowChrome CaptionHeight="40" GlassFrameThickness="-1" ResizeBorderThickness="6" CornerRadius="0" UseAeroCaptionButtons="False" />
+  </WindowChrome.WindowChrome>
+
+  <Window.Resources>
+    <Style x:Key="RowTitle" TargetType="TextBlock" BasedOn="{StaticResource Kairo.Text.Body}" />
+    <Style x:Key="RowDescription" TargetType="TextBlock" BasedOn="{StaticResource Kairo.Text.Caption}" />
+    <Style x:Key="PageTitle" TargetType="TextBlock" BasedOn="{StaticResource Kairo.Text.Title}">
+      <Setter Property="Margin" Value="0,0,0,12" />
+    </Style>
+    <Style x:Key="Page" TargetType="StackPanel">
+      <Setter Property="Margin" Value="0,0,0,40" />
+    </Style>
+    <Style x:Key="RowIcon" TargetType="TextBlock" BasedOn="{StaticResource Kairo.Text.Icon}">
+      <Setter Property="FontSize" Value="18" />
+      <Setter Property="Margin" Value="0,0,16,0" />
+    </Style>
+    <Style x:Key="NumberBox" TargetType="TextBox" BasedOn="{StaticResource Kairo.TextBox}">
+      <Setter Property="Width" Value="110" />
+      <Setter Property="HorizontalContentAlignment" Value="Right" />
+    </Style>
+  </Window.Resources>
+
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="40" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+    <c:TitleBar Title="Einstellungen" />
+
+    <Grid Grid.Row="1">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="300" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <!-- ============================================ navigation -->
+      <DockPanel Margin="12,4,8,12">
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="12,8,0,16">
+          <Image Source="/Kairo;component/Assets/kairo-logo-64.png" Width="40" Height="40" RenderOptions.BitmapScalingMode="HighQuality" />
+          <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+            <TextBlock Text="Kairo" Style="{StaticResource Kairo.Text.BodyStrong}" />
+            <TextBlock Style="{StaticResource Kairo.Text.Caption}">
+              <Run Text="Version" /> <Run Text="{Binding Version, Mode=OneWay}" />
+            </TextBlock>
+          </StackPanel>
+        </StackPanel>
+        <ListBox Style="{StaticResource Kairo.NavList}" ItemsSource="{Binding Navigation}" SelectedItem="{Binding SelectedNav}" AutomationProperties.Name="Einstellungsbereiche">
+          <ListBox.ItemTemplate>
+            <DataTemplate DataType="{x:Type vm:NavEntry}">
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Text="{Binding Glyph}" Style="{StaticResource Kairo.Text.Icon}" Margin="0,0,14,0" />
+                <TextBlock Text="{Binding Title}" Style="{StaticResource Kairo.Text.Body}" />
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+
+      <!-- ============================================ pages -->
+      <ScrollViewer Grid.Column="1" x:Name="PageScroller" VerticalScrollBarVisibility="Auto" Padding="28,8,36,0">
+        <Grid MaxWidth="1000" HorizontalAlignment="Stretch">
+
+          <!-- ======================= Allgemein -->
+          <StackPanel Style="{StaticResource Page}" Visibility="{Binding SelectedNav.Key, Converter={StaticResource EnumToVisibility}, ConverterParameter=general}">
+            <TextBlock Text="Allgemein" Style="{StaticResource PageTitle}" />
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <DockPanel>
+                <TextBlock Text="&#xE7E8;" Style="{StaticResource RowIcon}" />
+                <CheckBox Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.General.StartWithWindows}">
+                  <StackPanel>
+                    <TextBlock Text="Mit Windows starten" Style="{StaticResource RowTitle}" />
+                    <TextBlock Text="Kairo startet nach der Anmeldung im Infobereich." Style="{StaticResource RowDescription}" />
+                  </StackPanel>
+                </CheckBox>
+              </DockPanel>
+            </Border>
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <DockPanel>
+                <TextBlock Text="&#xE769;" Style="{StaticResource RowIcon}" />
+                <CheckBox Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding ControlPaused}">
+                  <StackPanel>
+                    <TextBlock Text="Computersteuerung pausieren" Style="{StaticResource RowTitle}" />
+                    <TextBlock Text="Solange die Steuerung pausiert ist, führt Kairo keine Aktionen aus. Laufende Aufgaben werden sofort gestoppt." Style="{StaticResource RowDescription}" />
+                  </StackPanel>
+                </CheckBox>
+              </DockPanel>
+            </Border>
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <DockPanel>
+                <TextBlock Text="&#xE7E7;" Style="{StaticResource RowIcon}" />
+                <CheckBox Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.General.ShowTrayNotifications}">
+                  <StackPanel>
+                    <TextBlock Text="Benachrichtigungen" Style="{StaticResource RowTitle}" />
+                    <TextBlock Text="Meldet abgeschlossene Aufgaben im Infobereich, wenn das Kairo-Fenster geschlossen ist." Style="{StaticResource RowDescription}" />
+                  </StackPanel>
+                </CheckBox>
+              </DockPanel>
+            </Border>
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <DockPanel>
+                <TextBlock Text="&#xE916;" Style="{StaticResource RowIcon}" />
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                  <TextBox Style="{StaticResource NumberBox}" Text="{Binding Model.General.AutoHideSeconds}" Width="70" />
+                  <TextBlock Text="Sekunden" Style="{StaticResource Kairo.Text.Caption}" VerticalAlignment="Center" Margin="8,0,24,0" />
+                  <CheckBox Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.General.AutoHideOnSuccess}" />
+                </StackPanel>
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="Ergebnis automatisch ausblenden" Style="{StaticResource RowTitle}" />
+                  <TextBlock Text="Blendet die Erfolgsmeldung nach kurzer Zeit aus." Style="{StaticResource RowDescription}" />
+                </StackPanel>
+              </DockPanel>
+            </Border>
+          </StackPanel>
+
+          <!-- ======================= API und Modelle -->
+          <StackPanel Style="{StaticResource Page}" Visibility="{Binding SelectedNav.Key, Converter={StaticResource EnumToVisibility}, ConverterParameter=models}">
+            <TextBlock Text="API und Modelle" Style="{StaticResource PageTitle}" />
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <StackPanel>
+                <DockPanel>
+                  <TextBlock Text="&#xE8D7;" Style="{StaticResource RowIcon}" VerticalAlignment="Top" />
+                  <StackPanel>
+                    <TextBlock Text="OpenRouter-API-Schlüssel" Style="{StaticResource RowTitle}" />
+                    <TextBlock Text="{Binding KeyStatus}" Style="{StaticResource RowDescription}" />
+                  </StackPanel>
+                </DockPanel>
+                <Grid Margin="34,12,0,0">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+                  <PasswordBox x:Name="KeyBox" c:Ui.Placeholder="Neuen Schlüssel eingeben (sk-or-v1-…)" PasswordChanged="OnKeyChanged"
+                               Visibility="{Binding RevealKey, Converter={StaticResource InverseBoolToVisibility}}" AutomationProperties.Name="Neuer API-Schlüssel" />
+                  <TextBox Text="{Binding NewApiKey, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" c:Ui.Placeholder="Neuen Schlüssel eingeben (sk-or-v1-…)"
+                           Visibility="{Binding RevealKey, Converter={StaticResource BoolToVisibility}}" />
+                  <CheckBox Grid.Column="1" Content="Anzeigen" IsChecked="{Binding RevealKey}" Margin="12,0,0,0" VerticalAlignment="Center" />
+                  <Button Grid.Column="2" Content="Speichern" Style="{StaticResource Kairo.Button.Accent}" Command="{Binding SaveKeyCommand}" Margin="12,0,0,0" />
+                </Grid>
+                <StackPanel Orientation="Horizontal" Margin="34,10,0,0">
+                  <Button Content="Verbindung testen" c:Ui.Icon="&#xE72C;" Command="{Binding TestConnectionCommand}" />
+                  <Button Content="Schlüssel entfernen" c:Ui.Icon="&#xE74D;" Style="{StaticResource Kairo.Button.Danger}" Command="{Binding RemoveKeyCommand}" Margin="8,0,0,0" />
+                  <Button Content="Schlüssel erstellen" Style="{StaticResource Kairo.Button.Link}" Command="{Binding OpenLinkCommand}" CommandParameter="https://openrouter.ai/keys" Margin="16,0,0,0" VerticalAlignment="Center" />
+                </StackPanel>
+                <ProgressBar IsIndeterminate="True" Margin="34,10,0,0" Visibility="{Binding IsTesting, Converter={StaticResource BoolToVisibility}}" />
+                <TextBlock Text="{Binding TestMessage}" Style="{StaticResource Kairo.Text.Body}" Margin="34,10,0,0" Visibility="{Binding TestMessage, Converter={StaticResource NotNullToVisibility}}" />
+                <ItemsControl ItemsSource="{Binding Results}" Margin="34,6,0,0">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type vm:CheckResult}">
+                      <StackPanel Orientation="Horizontal" Margin="0,3">
+                        <TextBlock Text="{Binding Glyph}" Width="24">
+                          <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource Kairo.Text.Icon}">
+                              <Setter Property="Foreground" Value="{DynamicResource Kairo.Danger}" />
+                              <Style.Triggers>
+                                <DataTrigger Binding="{Binding Ok}" Value="True">
+                                  <Setter Property="Foreground" Value="{DynamicResource Kairo.Success}" />
+                                </DataTrigger>
+                              </Style.Triggers>
+                            </Style>
+                          </TextBlock.Style>
+                        </TextBlock>
+                        <TextBlock Style="{StaticResource Kairo.Text.Caption}" Foreground="{DynamicResource Kairo.Text}">
+                          <Run Text="{Binding Title, Mode=OneWay}" FontWeight="SemiBold" /> – <Run Text="{Binding Detail, Mode=OneWay}" />
+                        </TextBlock>
+                      </StackPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Border>
+
+            <TextBlock Text="Modelle" Style="{StaticResource Kairo.SectionHeader}" />
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <DockPanel>
+                <TextBlock Text="&#xE8FD;" Style="{StaticResource RowIcon}" />
+                <ComboBox DockPanel.Dock="Right" Width="320" IsEditable="True" ItemsSource="{Binding PlannerModels}" Text="{Binding Model.Models.PlannerModel, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Planungsmodell" />
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="Planungsmodell" Style="{StaticResource RowTitle}" />
+                  <TextBlock Text="Generatives Modell, das deine Anweisung versteht und den Aufgabenplan erstellt." Style="{StaticResource RowDescription}" />
+                </StackPanel>
+              </DockPanel>
+            </Border>
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <DockPanel>
+                <TextBlock Text="&#xE945;" Style="{StaticResource RowIcon}" />
+                <ComboBox DockPanel.Dock="Right" Width="320" IsEditable="True" ItemsSource="{Binding DecisionModels}" Text="{Binding Model.Models.DecisionModel, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Entscheidungsmodell" />
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="Entscheidungsmodell (Jev)" Style="{StaticResource RowTitle}" />
+                  <TextBlock Text="TypeSafe Jev über die OpenRouter Decisions API: wählt Zielelemente, prüft Risiken und Ergebnisse in wenigen hundert Millisekunden." Style="{StaticResource RowDescription}" />
+                </StackPanel>
+              </DockPanel>
+            </Border>
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <DockPanel>
+                <TextBlock Text="&#xE722;" Style="{StaticResource RowIcon}" />
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                  <ComboBox Width="320" IsEditable="True" ItemsSource="{Binding VisionModels}" Text="{Binding Model.Models.VisionModel, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Vision-Modell" />
+                  <CheckBox Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Models.VisionEnabled}" Margin="16,0,0,0" />
+                </StackPanel>
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="Vision-Modell" Style="{StaticResource RowTitle}" />
+                  <TextBlock Text="Nur für Oberflächen ohne Accessibility-Informationen. Screenshots werden immer angezeigt." Style="{StaticResource RowDescription}" />
+                </StackPanel>
+              </DockPanel>
+            </Border>
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <DockPanel>
+                <TextBlock Text="&#xE9D9;" Style="{StaticResource RowIcon}" />
+                <ComboBox DockPanel.Dock="Right" Width="160" ItemsSource="{Binding ReasoningOptions}" SelectedItem="{Binding ReasoningEffort}" />
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="Planungstiefe (Reasoning)" Style="{StaticResource RowTitle}" />
+                  <TextBlock Text="Höhere Stufen denken gründlicher, sind aber langsamer und teurer." Style="{StaticResource RowDescription}" />
+                </StackPanel>
+              </DockPanel>
+            </Border>
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <DockPanel>
+                <TextBlock Text="&#xE71C;" Style="{StaticResource RowIcon}" />
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                  <Slider Width="180" Minimum="0.5" Maximum="0.95" TickFrequency="0.05" IsSnapToTickEnabled="True" Value="{Binding Model.Models.JevActThreshold}" />
+                  <TextBlock Text="{Binding Model.Models.JevActThreshold, StringFormat={}{0:P0}}" Style="{StaticResource Kairo.Text.Caption}" Width="44" Margin="10,0,16,0" VerticalAlignment="Center" />
+                  <CheckBox Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Models.UseJevDecisions}" />
+                </StackPanel>
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="Jev-Entscheidungen" Style="{StaticResource RowTitle}" />
+                  <TextBlock Text="Mindestwahrscheinlichkeit, ab der Kairo einer Jev-Entscheidung ohne Bestätigung durch den Plan folgt." Style="{StaticResource RowDescription}" />
+                </StackPanel>
+              </DockPanel>
+            </Border>
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+              <Button Content="Verfügbare Modelle laden" c:Ui.Icon="&#xE896;" Command="{Binding LoadModelsCommand}" />
+              <TextBlock Text="{Binding ModelListStatus}" Style="{StaticResource Kairo.Text.Caption}" Margin="12,0,0,0" VerticalAlignment="Center" />
+            </StackPanel>
+
+            <TextBlock Text="Kosten" Style="{StaticResource Kairo.SectionHeader}" />
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <DockPanel>
+                <TextBlock Text="&#xE825;" Style="{StaticResource RowIcon}" />
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="API-Kosten" Style="{StaticResource RowTitle}" />
+                  <TextBlock Text="{Binding CostSummary}" Style="{StaticResource RowDescription}" />
+                  <TextBlock Text="Werte laut OpenRouter (usage.cost). Jev berechnet nur Eingabe-Tokens." Style="{StaticResource RowDescription}" />
+                </StackPanel>
+              </DockPanel>
+            </Border>
+          </StackPanel>
+
+          <!-- ======================= Computersteuerung -->
+          <StackPanel Style="{StaticResource Page}" Visibility="{Binding SelectedNav.Key, Converter={StaticResource EnumToVisibility}, ConverterParameter=control}">
+            <TextBlock Text="Computersteuerung" Style="{StaticResource PageTitle}" />
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <StackPanel>
+                <DockPanel>
+                  <TextBlock Text="&#xE774;" Style="{StaticResource RowIcon}" />
+                  <CheckBox DockPanel.Dock="Right" Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Control.UseBrowserExtension}" />
+                  <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="Browser-Erweiterung verwenden (Chrome, Edge)" Style="{StaticResource RowTitle}" />
+                    <TextBlock Text="{Binding BrowserStatus}" Style="{StaticResource RowDescription}" />
+                  </StackPanel>
+                </DockPanel>
+                <StackPanel Orientation="Horizontal" Margin="34,10,0,0">
+                  <Button Content="Erweiterung einrichten" c:Ui.Icon="&#xE710;" Command="{Binding SetupExtensionCommand}" />
+                  <Button Content="Status aktualisieren" c:Ui.Icon="&#xE72C;" Command="{Binding RefreshBrowserCommand}" Margin="8,0,0,0" Style="{StaticResource Kairo.Button.Subtle}" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <DockPanel>
+                <TextBlock Text="&#xE9F5;" Style="{StaticResource RowIcon}" />
+                <CheckBox DockPanel.Dock="Right" Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Control.PrefetchOnOverlayOpen}" />
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="Fenster vorab analysieren" Style="{StaticResource RowTitle}" />
+                  <TextBlock Text="Liest die Oberfläche bereits beim Öffnen des Eingabefelds – die Aufgabe startet dadurch schneller. Es werden dabei keine Daten versendet." Style="{StaticResource RowDescription}" />
+                </StackPanel>
+              </DockPanel>
+            </Border>
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <DockPanel>
+                <TextBlock Text="&#xE9D2;" Style="{StaticResource RowIcon}" />
+                <TextBox DockPanel.Dock="Right" Style="{StaticResource NumberBox}" Text="{Binding Model.Control.MaxActionsPerTask}" />
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="Maximale Aktionen pro Aufgabe" Style="{StaticResource RowTitle}" />
+                  <TextBlock Text="Schutz vor Endlosschleifen." Style="{StaticResource RowDescription}" />
+                </StackPanel>
+              </DockPanel>
+            </Border>
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <DockPanel>
+                <TextBlock Text="&#xE8FD;" Style="{StaticResource RowIcon}" />
+                <TextBox DockPanel.Dock="Right" Style="{StaticResource NumberBox}" Text="{Binding Model.Control.MaxPlanningRounds}" />
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="Maximale Planungsrunden" Style="{StaticResource RowTitle}" />
+                  <TextBlock Text="Wie oft Kairo nach Bildschirmwechseln neu planen darf." Style="{StaticResource RowDescription}" />
+                </StackPanel>
+              </DockPanel>
+            </Border>
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <DockPanel>
+                <TextBlock Text="&#xE72C;" Style="{StaticResource RowIcon}" />
+                <TextBox DockPanel.Dock="Right" Style="{StaticResource NumberBox}" Text="{Binding Model.Control.MaxRetriesPerStep}" />
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="Korrekturversuche pro Schritt" Style="{StaticResource RowTitle}" />
+                  <TextBlock Text="Schlägt die Überprüfung fehl, wiederholt Kairo den Schritt gezielt mit simulierter Eingabe." Style="{StaticResource RowDescription}" />
+                </StackPanel>
+              </DockPanel>
+            </Border>
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <DockPanel>
+                <TextBlock Text="&#xE765;" Style="{StaticResource RowIcon}" />
+                <TextBox DockPanel.Dock="Right" Style="{StaticResource NumberBox}" Text="{Binding Model.Control.TypingDelayMs}" />
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="Verzögerung zwischen Tastenanschlägen (ms)" Style="{StaticResource RowTitle}" />
+                  <TextBlock Text="0 = so schnell wie möglich. Nur für Anwendungen erhöhen, die schnelle Eingaben verlieren." Style="{StaticResource RowDescription}" />
+                </StackPanel>
+              </DockPanel>
+            </Border>
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <DockPanel>
+                <TextBlock Text="&#xE8FD;" Style="{StaticResource RowIcon}" />
+                <TextBox DockPanel.Dock="Right" Style="{StaticResource NumberBox}" Text="{Binding Model.Control.MaxSnapshotElements}" />
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="Maximale Bedienelemente pro Analyse" Style="{StaticResource RowTitle}" />
+                  <TextBlock Text="Begrenzt die Datenmenge, die an das Planungsmodell geht." Style="{StaticResource RowDescription}" />
+                </StackPanel>
+              </DockPanel>
+            </Border>
+          </StackPanel>
+
+          <!-- ======================= Sicherheit -->
+          <StackPanel Style="{StaticResource Page}" Visibility="{Binding SelectedNav.Key, Converter={StaticResource EnumToVisibility}, ConverterParameter=security}">
+            <TextBlock Text="Sicherheit und Berechtigungen" Style="{StaticResource PageTitle}" />
+            <Border Style="{StaticResource Kairo.Card}" Margin="0,0,0,12">
+              <StackPanel>
+                <TextBlock Text="So schützt dich Kairo" Style="{StaticResource Kairo.Text.BodyStrong}" />
+                <TextBlock Style="{StaticResource Kairo.Text.Caption}" Margin="0,6,0,0"
+                           Text="Gewöhnliche Aktionen (Programme öffnen, navigieren, Formulare ausfüllen) laufen innerhalb deiner Aufgabe automatisch. Sensible Aktionen (Nachrichten senden, Formulare mit persönlichen Daten absenden, Dateien löschen) brauchen deine Freigabe. Nicht umkehrbare Aktionen (Zahlungen, endgültiges Löschen, Sicherheitseinstellungen) werden jedes Mal einzeln bestätigt. Inhalte von Webseiten und Dokumenten sind für Kairo nur Daten – niemals Anweisungen." />
+              </StackPanel>
+            </Border>
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <StackPanel>
+                <DockPanel>
+                  <TextBlock Text="&#xEA18;" Style="{StaticResource RowIcon}" />
+                  <TextBlock Text="Freigaben" Style="{StaticResource RowTitle}" VerticalAlignment="Center" />
+                </DockPanel>
+                <StackPanel Margin="34,8,0,0">
+                  <RadioButton Content="Bei sensiblen und nicht umkehrbaren Aktionen fragen (empfohlen)" GroupName="Approval"
+                               IsChecked="{Binding Model.Security.ApprovalMode, Converter={StaticResource EnumEquals}, ConverterParameter=SensitiveAndIrreversible}" />
+                  <RadioButton Content="Bei jeder Aktion außerhalb des Ausfüllens fragen" GroupName="Approval"
+                               IsChecked="{Binding Model.Security.ApprovalMode, Converter={StaticResource EnumEquals}, ConverterParameter=Always}" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <DockPanel>
+                <TextBlock Text="&#xE945;" Style="{StaticResource RowIcon}" />
+                <CheckBox DockPanel.Dock="Right" Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Security.UseJevRiskCheck}" />
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="Risiko-Zweitprüfung mit Jev" Style="{StaticResource RowTitle}" />
+                  <TextBlock Text="Mehrdeutige Schaltflächen („OK“, „Weiter“) werden zusätzlich von Jev bewertet." Style="{StaticResource RowDescription}" />
+                </StackPanel>
+              </DockPanel>
+            </Border>
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <DockPanel>
+                <TextBlock Text="&#xE7BA;" Style="{StaticResource RowIcon}" />
+                <CheckBox DockPanel.Dock="Right" Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Security.DetectPromptInjection}" />
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="Versteckte Anweisungen erkennen" Style="{StaticResource RowTitle}" />
+                  <TextBlock Text="Webseiten und Dokumente mit Anweisungen an KI-Systeme verschärfen die Freigaberegeln für den Rest der Aufgabe." Style="{StaticResource RowDescription}" />
+                </StackPanel>
+              </DockPanel>
+            </Border>
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <DockPanel>
+                <TextBlock Text="&#xE74D;" Style="{StaticResource RowIcon}" />
+                <TextBox DockPanel.Dock="Right" Style="{StaticResource NumberBox}" Text="{Binding Model.Security.MaxFilesPerDelete}" />
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="Maximale Dateien pro Löschvorgang" Style="{StaticResource RowTitle}" />
+                  <TextBlock Text="Größere Löschungen sind gesperrt. Gelöscht wird immer nur in den Papierkorb." Style="{StaticResource RowDescription}" />
+                </StackPanel>
+              </DockPanel>
+            </Border>
+
+            <TextBlock Text="Gesperrte Anwendungen" Style="{StaticResource Kairo.SectionHeader}" />
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <StackPanel>
+                <TextBlock Text="Kairo bedient diese Programme nie (Prozessname ohne .exe)." Style="{StaticResource RowDescription}" />
+                <ItemsControl ItemsSource="{Binding BlockedApps}" Margin="0,8,0,0">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <WrapPanel />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Border Style="{StaticResource Kairo.Badge}" Margin="0,0,6,6" Padding="10,2,4,2">
+                        <StackPanel Orientation="Horizontal">
+                          <TextBlock Text="{Binding}" Style="{StaticResource Kairo.Text.Caption}" Foreground="{DynamicResource Kairo.Accent.Foreground}" VerticalAlignment="Center" />
+                          <Button Style="{StaticResource Kairo.Button.Icon}" c:Ui.Icon="&#xE711;" Padding="4" MinHeight="20" MinWidth="20" Margin="4,0,0,0"
+                                  Command="{Binding DataContext.RemoveBlockedAppCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" ToolTip="Entfernen" />
+                        </StackPanel>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                  <TextBox Width="240" Text="{Binding NewBlockedApp, UpdateSourceTrigger=PropertyChanged}" c:Ui.Placeholder="z. B. banking-app" />
+                  <Button Content="Hinzufügen" c:Ui.Icon="&#xE710;" Command="{Binding AddBlockedAppCommand}" Margin="8,0,0,0" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <TextBlock Text="Dateizugriff" Style="{StaticResource Kairo.SectionHeader}" />
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <StackPanel>
+                <TextBlock Text="Standardmäßig darf Kairo diese Ordner lesen und schreiben. Pfade, die du in einer Anweisung ausdrücklich nennst, sind für diese Aufgabe ebenfalls freigegeben; alles andere braucht deine Freigabe. Systemordner, Browserprofile und Schlüsseldateien sind immer gesperrt." Style="{StaticResource RowDescription}" />
+                <TextBlock Text="{Binding DefaultFolders}" Style="{StaticResource Kairo.Text.Caption}" Foreground="{DynamicResource Kairo.Text}" Margin="0,8,0,0" FontFamily="Consolas" />
+                <TextBlock Text="Zusätzliche Leseordner" Style="{StaticResource Kairo.Text.BodyStrong}" FontSize="13" Margin="0,14,0,4" />
+                <ItemsControl ItemsSource="{Binding ReadRoots}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <DockPanel Margin="0,2">
+                        <Button DockPanel.Dock="Right" Style="{StaticResource Kairo.Button.Icon}" c:Ui.Icon="&#xE74D;" ToolTip="Entfernen"
+                                Command="{Binding DataContext.RemoveReadRootCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
+                        <TextBlock Text="{Binding}" Style="{StaticResource Kairo.Text.Caption}" Foreground="{DynamicResource Kairo.Text}" VerticalAlignment="Center" />
+                      </DockPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Button Content="Leseordner hinzufügen" c:Ui.Icon="&#xE8F4;" Command="{Binding AddReadRootCommand}" HorizontalAlignment="Left" Margin="0,4,0,0" />
+                <TextBlock Text="Zusätzliche Schreibordner" Style="{StaticResource Kairo.Text.BodyStrong}" FontSize="13" Margin="0,14,0,4" />
+                <ItemsControl ItemsSource="{Binding WriteRoots}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <DockPanel Margin="0,2">
+                        <Button DockPanel.Dock="Right" Style="{StaticResource Kairo.Button.Icon}" c:Ui.Icon="&#xE74D;" ToolTip="Entfernen"
+                                Command="{Binding DataContext.RemoveWriteRootCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
+                        <TextBlock Text="{Binding}" Style="{StaticResource Kairo.Text.Caption}" Foreground="{DynamicResource Kairo.Text}" VerticalAlignment="Center" />
+                      </DockPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Button Content="Schreibordner hinzufügen" c:Ui.Icon="&#xE8F4;" Command="{Binding AddWriteRootCommand}" HorizontalAlignment="Left" Margin="0,4,0,0" />
+              </StackPanel>
+            </Border>
+          </StackPanel>
+
+          <!-- ======================= Datenschutz -->
+          <StackPanel Style="{StaticResource Page}" Visibility="{Binding SelectedNav.Key, Converter={StaticResource EnumToVisibility}, ConverterParameter=privacy}">
+            <TextBlock Text="Datenschutz" Style="{StaticResource PageTitle}" />
+            <Border Style="{StaticResource Kairo.Card}" Margin="0,0,0,12">
+              <StackPanel>
+                <TextBlock Text="Was verlässt deinen Computer?" Style="{StaticResource Kairo.Text.BodyStrong}" />
+                <TextBlock Style="{StaticResource Kairo.Text.Caption}" Margin="0,6,0,0"
+                           Text="An OpenRouter gehen nur: deine Anweisung, eine kompakte Liste der Bedienelemente des aktiven Fensters (ohne Passwortwerte) und die aufgabenrelevanten Auszüge gelesener Dateien. Dateien werden lokal gelesen. Kreditkartennummern und IBANs werden vor dem Versand durch Platzhalter ersetzt und erst lokal beim Eintragen wieder eingesetzt. Screenshots werden nur im Vision-Fallback gesendet und dir immer angezeigt. Der API-Schlüssel wird ausschließlich im Authorization-Header übertragen und nie protokolliert." />
+              </StackPanel>
+            </Border>
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <StackPanel>
+                <DockPanel>
+                  <TextBlock Text="&#xE722;" Style="{StaticResource RowIcon}" />
+                  <TextBlock Text="Screenshots (Vision-Fallback)" Style="{StaticResource RowTitle}" VerticalAlignment="Center" />
+                </DockPanel>
+                <StackPanel Margin="34,8,0,0">
+                  <RadioButton Content="Senden und im Kairo-Fenster anzeigen" GroupName="Vision"
+                               IsChecked="{Binding Model.Privacy.VisionConsent, Converter={StaticResource EnumEquals}, ConverterParameter=Notify}" />
+                  <RadioButton Content="Vor jedem Screenshot fragen" GroupName="Vision"
+                               IsChecked="{Binding Model.Privacy.VisionConsent, Converter={StaticResource EnumEquals}, ConverterParameter=Ask}" />
+                  <RadioButton Content="Nie Screenshots senden" GroupName="Vision"
+                               IsChecked="{Binding Model.Privacy.VisionConsent, Converter={StaticResource EnumEquals}, ConverterParameter=Never}" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <DockPanel>
+                <TextBlock Text="&#xE72E;" Style="{StaticResource RowIcon}" />
+                <CheckBox DockPanel.Dock="Right" Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Privacy.MaskPasswordFieldsInScreenshots}" />
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="Passwortfelder in Screenshots schwärzen" Style="{StaticResource RowTitle}" />
+                </StackPanel>
+              </DockPanel>
+            </Border>
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <DockPanel>
+                <TextBlock Text="&#xE8EC;" Style="{StaticResource RowIcon}" />
+                <CheckBox DockPanel.Dock="Right" Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Privacy.MaskSensitiveNumbers}" />
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="Kartennummern und IBANs schützen" Style="{StaticResource RowTitle}" />
+                  <TextBlock Text="Das Modell sieht nur Platzhalter; der echte Wert wird lokal eingesetzt." Style="{StaticResource RowDescription}" />
+                </StackPanel>
+              </DockPanel>
+            </Border>
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <DockPanel>
+                <TextBlock Text="&#xE8A5;" Style="{StaticResource RowIcon}" />
+                <TextBox DockPanel.Dock="Right" Style="{StaticResource NumberBox}" Text="{Binding Model.Privacy.MaxFileCharsToModel}" />
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="Maximale Zeichen pro Datei an das Modell" Style="{StaticResource RowTitle}" />
+                  <TextBlock Text="Bei größeren Dateien wählt Kairo lokal nur die relevanten Abschnitte aus." Style="{StaticResource RowDescription}" />
+                </StackPanel>
+              </DockPanel>
+            </Border>
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <StackPanel>
+                <DockPanel>
+                  <TextBlock Text="&#xE81C;" Style="{StaticResource RowIcon}" />
+                  <CheckBox DockPanel.Dock="Right" Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Privacy.SaveTaskHistory}" />
+                  <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="Aufgabenverlauf speichern" Style="{StaticResource RowTitle}" />
+                    <TextBlock Text="Lokal, mit DPAPI verschlüsselt. Enthält keine Feldwerte und keine Screenshots." Style="{StaticResource RowDescription}" />
+                  </StackPanel>
+                </DockPanel>
+                <DockPanel Margin="34,10,0,0">
+                  <CheckBox DockPanel.Dock="Right" Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Privacy.StoreInstructionsInHistory}" />
+                  <TextBlock Text="Anweisungstexte im Verlauf speichern" Style="{StaticResource RowDescription}" VerticalAlignment="Center" />
+                </DockPanel>
+                <DockPanel Margin="34,10,0,0">
+                  <TextBox DockPanel.Dock="Right" Style="{StaticResource NumberBox}" Text="{Binding Model.Privacy.HistoryRetentionDays}" />
+                  <TextBlock Text="Aufbewahrung in Tagen" Style="{StaticResource RowDescription}" VerticalAlignment="Center" />
+                </DockPanel>
+              </StackPanel>
+            </Border>
+            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+              <Button Content="Verlauf löschen" c:Ui.Icon="&#xE74D;" Command="{Binding ClearHistoryCommand}" />
+              <Button Content="Datenordner öffnen" c:Ui.Icon="&#xE8B7;" Command="{Binding OpenDataFolderCommand}" Margin="8,0,0,0" />
+              <Button Content="Alle Kairo-Daten sicher löschen" c:Ui.Icon="&#xE74D;" Style="{StaticResource Kairo.Button.Danger}" Command="{Binding RemoveAllDataCommand}" Margin="8,0,0,0" />
+            </StackPanel>
+          </StackPanel>
+
+          <!-- ======================= Erscheinungsbild -->
+          <StackPanel Style="{StaticResource Page}" Visibility="{Binding SelectedNav.Key, Converter={StaticResource EnumToVisibility}, ConverterParameter=appearance}">
+            <TextBlock Text="Erscheinungsbild" Style="{StaticResource PageTitle}" />
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <StackPanel>
+                <DockPanel>
+                  <TextBlock Text="&#xE790;" Style="{StaticResource RowIcon}" />
+                  <TextBlock Text="Farbmodus" Style="{StaticResource RowTitle}" VerticalAlignment="Center" />
+                </DockPanel>
+                <StackPanel Margin="34,8,0,0">
+                  <RadioButton Content="Wie Windows" GroupName="Theme" IsChecked="{Binding Model.Appearance.Theme, Converter={StaticResource EnumEquals}, ConverterParameter=System}" />
+                  <RadioButton Content="Hell" GroupName="Theme" IsChecked="{Binding Model.Appearance.Theme, Converter={StaticResource EnumEquals}, ConverterParameter=Light}" />
+                  <RadioButton Content="Dunkel" GroupName="Theme" IsChecked="{Binding Model.Appearance.Theme, Converter={StaticResource EnumEquals}, ConverterParameter=Dark}" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <StackPanel>
+                <DockPanel>
+                  <TextBlock Text="&#xE8A1;" Style="{StaticResource RowIcon}" />
+                  <TextBlock Text="Position des Eingabefelds" Style="{StaticResource RowTitle}" VerticalAlignment="Center" />
+                </DockPanel>
+                <StackPanel Margin="34,8,0,0">
+                  <RadioButton Content="Oben" GroupName="Placement" IsChecked="{Binding Model.Appearance.OverlayPlacement, Converter={StaticResource EnumEquals}, ConverterParameter=TopCenter}" />
+                  <RadioButton Content="Bildschirmmitte" GroupName="Placement" IsChecked="{Binding Model.Appearance.OverlayPlacement, Converter={StaticResource EnumEquals}, ConverterParameter=Center}" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <DockPanel>
+                <TextBlock Text="&#xE7F4;" Style="{StaticResource RowIcon}" />
+                <CheckBox DockPanel.Dock="Right" Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Appearance.UseMica}" />
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="Mica- und Acryl-Effekte" Style="{StaticResource RowTitle}" />
+                  <TextBlock Text="Transparente Fensterhintergründe (Windows 11 22H2 oder neuer)." Style="{StaticResource RowDescription}" />
+                </StackPanel>
+              </DockPanel>
+            </Border>
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <DockPanel>
+                <TextBlock Text="&#xE916;" Style="{StaticResource RowIcon}" />
+                <CheckBox DockPanel.Dock="Right" Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Appearance.Animations}" />
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="Animationen" Style="{StaticResource RowTitle}" />
+                </StackPanel>
+              </DockPanel>
+            </Border>
+          </StackPanel>
+
+          <!-- ======================= Tastenkombinationen -->
+          <StackPanel Style="{StaticResource Page}" Visibility="{Binding SelectedNav.Key, Converter={StaticResource EnumToVisibility}, ConverterParameter=hotkeys}">
+            <TextBlock Text="Tastenkombinationen" Style="{StaticResource PageTitle}" />
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <DockPanel>
+                <TextBlock Text="&#xE765;" Style="{StaticResource RowIcon}" />
+                <c:HotkeyBox DockPanel.Dock="Right" Width="220" Hotkey="{Binding OverlayHotkey}" AutomationProperties.Name="Tastenkombination für das Eingabefeld" />
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="Kairo öffnen" Style="{StaticResource RowTitle}" />
+                  <TextBlock Text="Klicke in das Feld und drücke die neue Kombination." Style="{StaticResource RowDescription}" />
+                </StackPanel>
+              </DockPanel>
+            </Border>
+            <Border Style="{StaticResource Kairo.SettingRow}">
+              <DockPanel>
+                <TextBlock Text="&#xE71A;" Style="{StaticResource RowIcon}" />
+                <c:HotkeyBox DockPanel.Dock="Right" Width="220" Hotkey="{Binding StopHotkey}" AutomationProperties.Name="Tastenkombination für den Nothalt" />
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="Laufende Aufgabe sofort stoppen" Style="{StaticResource RowTitle}" />
+                  <TextBlock Text="Funktioniert auch, wenn das Kairo-Fenster verborgen ist." Style="{StaticResource RowDescription}" />
+                </StackPanel>
+              </DockPanel>
+            </Border>
+            <TextBlock Text="{Binding HotkeyStatus}" Style="{StaticResource Kairo.Text.Body}" Margin="4,8,0,0" Visibility="{Binding HotkeyStatus, Converter={StaticResource NotNullToVisibility}}" />
+            <Button Content="Standard wiederherstellen" c:Ui.Icon="&#xE777;" Command="{Binding ResetHotkeysCommand}" HorizontalAlignment="Left" Margin="0,12,0,0" />
+          </StackPanel>
+
+          <!-- ======================= Aufgabenverlauf -->
+          <Grid Margin="0,0,0,24" Visibility="{Binding SelectedNav.Key, Converter={StaticResource EnumToVisibility}, ConverterParameter=history}">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <TextBlock Text="Aufgabenverlauf" Style="{StaticResource PageTitle}" />
+            <TextBlock Grid.Row="1" Text="{Binding CostSummary}" Style="{StaticResource Kairo.Text.Caption}" Margin="0,0,0,12" />
+            <ListBox Grid.Row="2" Style="{StaticResource Kairo.PlainList}" ItemsSource="{Binding History}" SelectedItem="{Binding SelectedHistory}" MaxHeight="420">
+              <ListBox.ItemTemplate>
+                <DataTemplate DataType="{x:Type vm:HistoryItem}">
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="28" />
+                      <ColumnDefinition Width="*" />
+                      <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock FontSize="14" VerticalAlignment="Top" Margin="0,2,0,0">
+                      <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource Kairo.Text.Icon}">
+                          <Setter Property="Text" Value="&#xEA39;" />
+                          <Setter Property="Foreground" Value="{DynamicResource Kairo.Danger}" />
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding Success}" Value="True">
+                              <Setter Property="Text" Value="&#xE930;" />
+                              <Setter Property="Foreground" Value="{DynamicResource Kairo.Success}" />
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </TextBlock.Style>
+                    </TextBlock>
+                    <StackPanel Grid.Column="1">
+                      <TextBlock Text="{Binding Title}" Style="{StaticResource Kairo.Text.Body}" TextTrimming="CharacterEllipsis" MaxHeight="40" />
+                      <TextBlock Text="{Binding Summary}" Style="{StaticResource Kairo.Text.Caption}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Margin="12,0,0,0">
+                      <TextBlock Text="{Binding When}" Style="{StaticResource Kairo.Text.Caption}" HorizontalAlignment="Right" />
+                      <TextBlock Text="{Binding StateText}" Style="{StaticResource Kairo.Text.Caption}" HorizontalAlignment="Right" />
+                    </StackPanel>
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+            <Border Grid.Row="3" Style="{StaticResource Kairo.Card}" Margin="0,12,0,0" Visibility="{Binding SelectedHistory, Converter={StaticResource NotNullToVisibility}}">
+              <StackPanel>
+                <TextBlock Text="Details" Style="{StaticResource Kairo.Text.BodyStrong}" />
+                <TextBlock Text="{Binding SelectedHistory.Record.Result}" Style="{StaticResource Kairo.Text.Body}" Margin="0,6,0,0" />
+                <TextBlock Text="Latenz der Verarbeitungsschritte" Style="{StaticResource Kairo.Text.Caption}" Margin="0,10,0,2" />
+                <TextBlock Text="{Binding SelectedHistory.Latencies}" Style="{StaticResource Kairo.Text.Caption}" FontFamily="Consolas" Foreground="{DynamicResource Kairo.Text}" />
+              </StackPanel>
+            </Border>
+          </Grid>
+
+          <!-- ======================= Über -->
+          <StackPanel Style="{StaticResource Page}" Visibility="{Binding SelectedNav.Key, Converter={StaticResource EnumToVisibility}, ConverterParameter=about}">
+            <TextBlock Text="Über Kairo" Style="{StaticResource PageTitle}" />
+            <Border Style="{StaticResource Kairo.Card}">
+              <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                  <Image Source="/Kairo;component/Assets/kairo-logo.png" Width="64" Height="64" RenderOptions.BitmapScalingMode="HighQuality" />
+                  <StackPanel Margin="16,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="Kairo" Style="{StaticResource Kairo.Text.Subtitle}" />
+                    <TextBlock Style="{StaticResource Kairo.Text.Caption}"><Run Text="Version " /><Run Text="{Binding Version, Mode=OneWay}" /><Run Text=" · KI-Computersteuerung für Windows" /></TextBlock>
+                  </StackPanel>
+                </StackPanel>
+                <TextBlock Style="{StaticResource Kairo.Text.Caption}" Margin="0,14,0,0"
+                           Text="Planung über OpenRouter (Chat Completions), strukturierte Entscheidungen mit TypeSafe Jev über die OpenRouter Decisions API, Wahrnehmung über Windows UI Automation, die Kairo-Browser-Erweiterung und optional Windows Graphics Capture. Aktionen über UI-Automation-Patterns, DOM-Befehle und – nur als Rückfall – SendInput." />
+                <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                  <Button Content="Projektseite" Style="{StaticResource Kairo.Button.Link}" Command="{Binding OpenLinkCommand}" CommandParameter="https://github.com/julianhintermann-cmd/jevcontrol" />
+                  <Button Content="OpenRouter" Style="{StaticResource Kairo.Button.Link}" Command="{Binding OpenLinkCommand}" CommandParameter="https://openrouter.ai" Margin="16,0,0,0" />
+                  <Button Content="TypeSafe Jev" Style="{StaticResource Kairo.Button.Link}" Command="{Binding OpenLinkCommand}" CommandParameter="https://openrouter.ai/typesafe" Margin="16,0,0,0" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+            <TextBlock Text="Diagnose" Style="{StaticResource Kairo.SectionHeader}" />
+            <Border Style="{StaticResource Kairo.Card}">
+              <StackPanel>
+                <TextBlock Text="Protokoll (ohne Inhalte, Schlüssel werden automatisch entfernt)" Style="{StaticResource Kairo.Text.Caption}" />
+                <ScrollViewer MaxHeight="260" Margin="0,8,0,0">
+                  <ItemsControl ItemsSource="{Binding RecentLog}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <TextBlock Text="{Binding}" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource Kairo.Text.Secondary}" TextWrapping="NoWrap" />
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </ScrollViewer>
+                <Button Content="Datenordner öffnen" c:Ui.Icon="&#xE8B7;" Command="{Binding OpenDataFolderCommand}" HorizontalAlignment="Left" Margin="0,10,0,0" />
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </Grid>
+      </ScrollViewer>
+    </Grid>
+  </Grid>
+</Window>
