@@ -120,8 +120,12 @@ Details in [BROWSER-BRIDGE.md](BROWSER-BRIDGE.md).
 - Die Named Pipe ist pro Benutzer (`PipeOptions.CurrentUserOnly` und ACL nur für den aktuellen Benutzer).
 - Kairo akzeptiert nur `Kairo.BrowserHost.exe` aus dem Installationsordner als Client
   (Prozesspfad-Prüfung).
-- Das Host-Manifest erlaubt nur die feste Erweiterungs-ID.
-- Der Host prüft zusätzlich das Origin-Argument.
+- Die Host-Manifeste erlauben nur die feste Erweiterungs-ID: `allowed_origins` für Chrome/Edge,
+  `allowed_extensions` (`kairo-bridge@jevcontrol`) für Firefox und Zen.
+- Der Host prüft zusätzlich die Aufrufargumente: das Origin (Chromium) bzw. die Add-on-ID (Firefox/Zen).
+  Eine andere Erweiterung beendet ihn sofort mit Exit-Code 2.
+- In Firefox und Zen ist die Erweiterung nur dauerhaft installierbar, wenn Mozilla sie signiert hat.
+  Unsigniert läuft sie nur als temporäres Add-on bis zum Neustart des Browsers.
 - Die Erweiterung nimmt Befehle nur über den Native-Messaging-Port an, nicht von Webseiten.
 
 ## 8. Lokale Daten

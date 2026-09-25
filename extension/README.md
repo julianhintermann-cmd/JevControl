@@ -1,6 +1,7 @@
-# Kairo Browser Bridge (Chrome/Edge-Erweiterung)
+# Kairo Browser Bridge (Erweiterung für Chrome, Edge, Firefox und Zen)
 
-Die Erweiterung verbindet Google Chrome und Microsoft Edge mit der Kairo-Desktop-App. Kairo kann damit
+Die Erweiterung verbindet Google Chrome, Microsoft Edge, Firefox und Firefox-Abkömmlinge wie Zen mit der
+Kairo-Desktop-App. Beide Engines laden denselben Code aus demselben Manifest. Kairo kann damit
 den DOM geöffneter Tabs gezielt auslesen (Formularfelder, Buttons, Links, Überschriften) und bedienen
 (ausfüllen, klicken, auswählen, scrollen, navigieren). Das ist genauer und schneller als
 UI Automation oder Screenshots.
@@ -16,8 +17,8 @@ Erweiterung (MV3) ──Native Messaging──► Kairo.BrowserHost.exe ──Na
 
 | Datei | Zweck |
 |-------|-------|
-| `manifest.json` | Manifest V3, feste ID über `key`, keine permanenten Content Scripts |
-| `background.js` | Service Worker: Native-Messaging-Verbindung, Methoden, Events, Wiederverbinden |
+| `manifest.json` | Manifest V3, feste ID über `key` (Chromium) bzw. `browser_specific_settings.gecko.id` (Firefox/Zen), keine permanenten Content Scripts |
+| `background.js` | Hintergrundskript (Chromium: Service Worker, Firefox: Event Page über `background.scripts`): Native-Messaging-Verbindung, Methoden, Events, Wiederverbinden |
 | `content.js` | Agent pro Frame, wird **nur bei Bedarf** injiziert (Snapshot, Aktionen, Werte, Scrollen) |
 | `popup.html`, `popup.css`, `popup.js` | Status-Popup („Verbunden mit Kairo" / „Nicht verbunden", „Erneut verbinden") |
 | `icons/` | Symbole 16/32/48/128 px, erzeugt mit `tools/make_icons.py` |
@@ -63,6 +64,37 @@ Native-Messaging-Host erlaubt nur diese ID:
 Registriert wird das Host-Manifest vom Installer unter
 `HKCU\Software\Google\Chrome\NativeMessagingHosts\com.kairo.bridge` und
 `HKCU\Software\Microsoft\Edge\NativeMessagingHosts\com.kairo.bridge` (Standardwert = Pfad zur JSON-Datei).
+
+### Firefox und Zen
+
+Firefox und seine Abkömmlinge (Zen, LibreWolf, Floorp, Waterfox) erkennen die Erweiterung an der festen
+Add-on-ID **`kairo-bridge@jevcontrol`** (`browser_specific_settings.gecko`). Sie lesen einen eigenen
+Host-Eintrag, `HKCU\Software\Mozilla\NativeMessagingHosts\com.kairo.bridge`, der auf
+`com.kairo.bridge.firefox.json` zeigt. Statt `allowed_origins` steht dort `allowed_extensions`:
+
+```json
+{
+  "name": "com.kairo.bridge",
+  "description": "Kairo Browser Bridge",
+  "path": "Kairo.BrowserHost.exe",
+  "type": "stdio",
+  "allowed_extensions": ["kairo-bridge@jevcontrol"]
+}
+```
+
+Installiert wird die Datei `Kairo-Firefox.xpi` (ZIP des Ordners, `manifest.json` im Stamm), siehe
+[docs/INSTALLATION.md](../docs/INSTALLATION.md#browser-erweiterung). Unterschiede zu Chromium:
+* Das Hintergrundskript ist eine Event Page (`background.scripts`). Chrome ab 121 ignoriert den Eintrag, weil
+  `service_worker` gesetzt ist; Firefox ignoriert umgekehrt `service_worker`.
+* Den Zugriff auf Websites (`host_permissions`) kann der Benutzer in Firefox entziehen. Fehlt er, meldet die
+  Erweiterung `restricted_page`, und das Popup bietet „Zugriff auf Websites erlauben“ an.
+* In `hello` meldet die Erweiterung `browser: "firefox"` und zusätzlich `product` aus
+  `runtime.getBrowserInfo()` (z. B. „Zen“). Damit ordnet Kairo die Verbindung dem richtigen Fenster zu, wenn
+  Firefox und Zen gleichzeitig laufen.
+* `data_collection_permissions: websiteContent`: Kairo schickt Seiteninhalte bei einer Aufgabe über die
+  Desktop-App an das gewählte KI-Modell. Firefox zeigt das bei der Installation an.
+* Geschützt sind zusätzlich `moz-extension:`, `resource:`, addons.mozilla.org, support.mozilla.org und
+  accounts.firefox.com.
 
 ### Lokale Dateien (`file://`)
 
@@ -126,8 +158,9 @@ Wo `docs/BROWSER-BRIDGE.md` Spielraum lässt, verhält sich die Erweiterung so:
 * Jede Methode hat ein Zeitbudget (z. B. `snapshot` 20 s, `act` 30 s, `actBatch` 90 s,
   `navigate`/`openTab`/`goBack`/`reload` 25 s). Wird es überschritten → `timeout`.
 * Allgemeine Browserfehler ohne eigenen Code werden als `script_error` gemeldet.
-* `browser` in `hello`: `edge` (Marke „Microsoft Edge" oder `Edg/` im User-Agent), `chrome`
-  (Marke „Google Chrome" oder keine Client Hints), sonst `chromium` (z. B. Chromium, Brave).
+* `browser` in `hello`: `firefox` (Gecko, auch Zen und andere Abkömmlinge; dazu `product`), `edge`
+  (Marke „Microsoft Edge" oder `Edg/` im User-Agent), `chrome` (Marke „Google Chrome" oder keine Client
+  Hints), sonst `chromium` (z. B. Chromium, Brave).
 * Standard-Tab: aktiver Tab des zuletzt fokussierten *normalen* Fensters.
 
 ### `snapshot`

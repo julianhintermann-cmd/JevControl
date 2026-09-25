@@ -133,7 +133,7 @@ Verifier Aktionen aus.
 
 `.github/workflows/ci.yml`:
 - `core` (Linux): Unit-Tests
-- `extension` (Linux): Playwright/Chromium
+- `extension` (Linux): Playwright/Chromium, Content-Agent zusätzlich in Firefox, `web-ext lint`
 - `windows` (`windows-latest`), in dieser Reihenfolge:
   1. Build
   2. Unit-, Integrations- und E2E-Tests
@@ -153,8 +153,23 @@ unter `docs/screenshots/` im jeweiligen Branch ab.
 
 Veröffentlicht wird über den manuell startbaren Workflow `.github/workflows/release.yml` (*Actions → Release →
 Run workflow*, Eingaben: Version und Vorabversion ja/nein). Er baut das MSI und testet genau dieses MSI mit
-`test-install.ps1`. Anschließend erstellt er das GitHub-Release `v<Version>` mit MSI und `SHA256SUMS.txt`. Die
-Release-Notes stammen aus `docs/releases/<Version>.md` (Pflicht).
+`test-install.ps1`. Anschließend erstellt er das GitHub-Release `v<Version>` mit MSI, `Kairo-Firefox-<Version>.xpi`
+und `SHA256SUMS.txt`. Die Release-Notes stammen aus `docs/releases/<Version>.md` (Pflicht); der Workflow ergänzt,
+ob die Firefox-Datei signiert ist.
+
+### Firefox-Add-on signieren (für Zen und Firefox)
+
+Firefox (Release) und Zen installieren nur von Mozilla signierte Add-ons dauerhaft. Der Release-Workflow
+signiert die XPI automatisch, wenn zwei Repository-Secrets gesetzt sind:
+1. Mit einem (kostenlosen) Mozilla-Konto unter <https://addons.mozilla.org/developers/addon/api/key/> einen
+   API-Schlüssel erzeugen.
+2. Unter *Settings → Secrets and variables → Actions* anlegen: `AMO_JWT_ISSUER` (JWT-Aussteller, beginnt mit
+   `user:`) und `AMO_JWT_SECRET` (JWT-Geheimnis).
+
+Signiert wird mit `web-ext sign --channel unlisted`: Die Erweiterung erscheint nicht öffentlich auf
+addons.mozilla.org, Mozilla prüft sie automatisch und liefert die signierte Datei zurück. Danach baut der
+Workflow das MSI mit der signierten Datei neu. Jede Version kann nur einmal signiert werden; ein
+fehlgeschlagenes Release mit einer bereits signierten Version braucht eine neue Versionsnummer.
 
 Lokal:
 

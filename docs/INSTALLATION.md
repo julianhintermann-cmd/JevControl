@@ -48,7 +48,9 @@ Der Schlüssel wird mit Windows DPAPI verschlüsselt gespeichert und nie im Klar
 Mit der Erweiterung liest und bedient Kairo Webformulare direkt im DOM. Das ist genauer und schneller. Ohne
 Erweiterung funktionieren Browser weiterhin über UI Automation.
 
-Die Erweiterung liegt nach der Installation unter `%LOCALAPPDATA%\Programs\Kairo\extension`.
+Die Erweiterung liegt nach der Installation unter `%LOCALAPPDATA%\Programs\Kairo\extension` (Chrome, Edge)
+und als Datei `%LOCALAPPDATA%\Programs\Kairo\Kairo-Firefox.xpi` (Firefox, Zen und andere Firefox-Abkömmlinge
+wie LibreWolf, Floorp oder Waterfox).
 
 **Microsoft Edge**
 1. `edge://extensions` öffnen.
@@ -67,6 +69,27 @@ Installer bereits registriert.
 > Die Erweiterung ist nicht im Chrome Web Store bzw. bei den Edge-Add-ons veröffentlicht. Deshalb ist die
 > Installation als entpackte Erweiterung nötig. Chrome kann beim Start einen Hinweis auf Erweiterungen im
 > Entwicklermodus zeigen.
+
+**Firefox und Zen**
+
+Firefox und Zen laden keine Ordner, sondern Add-on-Dateien (`.xpi`). Dauerhaft installieren sie nur Dateien,
+die Mozilla signiert hat. Die Einstellung `xpinstall.signatures.required` wird in Firefox (Release) und in Zen
+ignoriert.
+
+*Signierte Datei* (steht in den Release-Notes, wenn das Release sie enthält):
+1. `Kairo-Firefox-<Version>.xpi` von der Release-Seite laden.
+2. Datei ins Browserfenster ziehen oder `about:addons` → Zahnrad → **Add-on aus Datei installieren…** wählen.
+
+*Unsignierte Datei* (vorübergehend, bis zum nächsten Neustart des Browsers):
+1. `about:debugging#/runtime/this-firefox` öffnen (in Zen heißt der Eintrag „Dieser Zen“).
+2. **Temporäres Add-on laden…** wählen und `%LOCALAPPDATA%\Programs\Kairo\Kairo-Firefox.xpi` auswählen.
+3. Nach jedem Neustart des Browsers wiederholen.
+
+Das Kairo-Symbol erscheint in der Symbolleiste; in Zen gegebenenfalls über das Erweiterungsmenü anheften.
+Firefox und Zen fragen den **Zugriff auf Websites** bei neueren Erweiterungen getrennt ab: Zeigt das Popup
+„Zugriff auf Websites erlauben“, einmal darauf klicken. Die Erweiterung hat in Firefox und Zen die feste ID
+`kairo-bridge@jevcontrol`; der Installer hat die Verbindung zum Desktop unter
+`HKCU\Software\Mozilla\NativeMessagingHosts\com.kairo.bridge` registriert.
 
 ## Aktualisieren
 
@@ -109,6 +132,9 @@ sicher löschen*.
 | „Guthaben reicht nicht aus“ | Guthaben bei OpenRouter aufladen |
 | Modell nicht verfügbar | *Einstellungen → API und Modelle → Verbindung testen* schlägt ein verfügbares Modell vor |
 | Erweiterung „Nicht verbunden“ | Kairo starten. Nach einer Neuinstallation einmal „Erneut verbinden“ im Erweiterungs-Popup klicken. |
+| Firefox/Zen: „Native-Messaging-Host nicht gefunden“ | Kairo ab Version 1.0.2 installieren (vorher gab es keine Registrierung für Firefox). Den Browser danach neu starten. |
+| Firefox/Zen verlangt eine ZIP- oder XPI-Datei | Nicht den Ordner `extension` wählen, sondern `Kairo-Firefox.xpi` (siehe oben). |
+| Firefox/Zen: Kairo arbeitet nur über UI Automation | Im Kairo-Popup „Zugriff auf Websites erlauben“ klicken. |
 | Eingaben kommen in einer App nicht an | Läuft die App als Administrator? Windows blockiert dann Eingaben von Kairo. Die App ohne Administratorrechte starten. |
 | Kairo soll nichts mehr tun | **Strg+Alt+Umschalt+K** oder Tray → *Computersteuerung pausieren* |
 | „Kairo konnte nicht gestartet werden“ | Die Datei `%LOCALAPPDATA%\Kairo\logs\startup-error.txt` enthält die technischen Details (ohne API-Schlüssel und ohne persönliche Inhalte). Bitte mit einem Issue melden. Version 1.0.0 hatte diesen Fehler bei jedem Start; behoben in 1.0.1. |

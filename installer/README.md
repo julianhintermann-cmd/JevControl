@@ -62,16 +62,18 @@ im Projekt begründet unterdrückt).
 ## Was installiert wird
 
 * alle Dateien aus dem Publish-Ordner nach `%LOCALAPPDATA%\Programs\Kairo\`
-  (`Kairo.exe`, `Kairo.BrowserHost.exe`, .NET-Laufzeit, `com.kairo.bridge.json`, `Assets\`, `extension\`)
+  (`Kairo.exe`, `Kairo.BrowserHost.exe`, .NET-Laufzeit, `com.kairo.bridge.json`, `com.kairo.bridge.firefox.json`,
+  `Assets\`, `extension\`, `Kairo-Firefox.xpi`)
 * Startmenü-Verknüpfung „Kairo“ (`%APPDATA%\Microsoft\Windows\Start Menu\Programs\Kairo.lnk`,
   Beschreibung „KI-Computersteuerung für Windows“, Symbol aus `Kairo.exe`)
 * optional Desktop-Verknüpfung „Kairo“
 * optional Autostart: `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, Wert `Kairo` =
   `"<Installationsordner>\Kairo.exe" --background`
-* Native Messaging für die Browser-Erweiterung (immer), Standardwert jeweils
-  `<Installationsordner>\com.kairo.bridge.json`:
-  * `HKCU\Software\Google\Chrome\NativeMessagingHosts\com.kairo.bridge`
-  * `HKCU\Software\Microsoft\Edge\NativeMessagingHosts\com.kairo.bridge`
+* Native Messaging für die Browser-Erweiterung (immer):
+  * `HKCU\Software\Google\Chrome\NativeMessagingHosts\com.kairo.bridge` → `com.kairo.bridge.json`
+  * `HKCU\Software\Microsoft\Edge\NativeMessagingHosts\com.kairo.bridge` → `com.kairo.bridge.json`
+  * `HKCU\Software\Mozilla\NativeMessagingHosts\com.kairo.bridge` → `com.kairo.bridge.firefox.json`
+    (Firefox, Zen und andere Firefox-Abkömmlinge)
 * `HKCU\Software\Kairo\Installer` – Installationsordner und gewählte Optionen (für Updates)
 * Eintrag unter „Apps“ bzw. „Programme und Features“ (Hersteller „Kairo“, Symbol, Link
   https://github.com/julianhintermann-cmd/jevcontrol)
@@ -131,7 +133,7 @@ laufen.
 ## Deinstallation
 
 Entfernt werden: alle installierten Dateien und Ordner, beide Verknüpfungen, der Autostart-Eintrag,
-die Native-Messaging-Registrierung für Chrome und Edge und `HKCU\Software\Kairo\Installer`.
+die Native-Messaging-Registrierung für Chrome, Edge und Firefox/Zen und `HKCU\Software\Kairo\Installer`.
 
 Vor dem Entfernen der Dateien ruft das MSI `Kairo.exe --uninstall-cleanup` auf (nicht bei Updates):
 
@@ -173,8 +175,9 @@ und danach `build.ps1 -SkipPublish` ausführen.
 
 Der Test läuft so ab:
 1. Installiert still mit `INSTALLDESKTOPSHORTCUT=1 AUTOSTART=1`.
-2. Prüft Dateien, Verknüpfungen, Autostart und beide Native-Messaging-Registrierungen: Manifest vorhanden,
-   `path` zeigt auf eine vorhandene EXE, Erweiterungs-ID erlaubt.
+2. Prüft Dateien (inklusive `Kairo-Firefox.xpi`), Verknüpfungen, Autostart und die drei
+   Native-Messaging-Registrierungen (Chrome, Edge, Firefox/Zen): Manifest vorhanden, `path` zeigt auf eine
+   vorhandene EXE, Erweiterungs-ID erlaubt (`allowed_origins` bzw. `allowed_extensions`).
 3. Führt `Kairo.exe --selftest --selftest-out selftest.json` aus und erwartet Exit-Code 0. Der Selbsttest
    lädt unter anderem die eingebetteten Tray-Symbole im echten `Kairo.exe`.
 4. Startet die installierte `Kairo.exe` wie ein Benutzer, also ohne Schalter und mit dem echten Datenordner.
