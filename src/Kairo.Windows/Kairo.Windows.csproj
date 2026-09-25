@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(WindowsTfm)</TargetFramework>
+    <RootNamespace>Kairo.Windows</RootNamespace>
+    <UseWPF>true</UseWPF>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Description>Native Windows integration of Kairo: UI Automation, SendInput, Windows Graphics Capture, DPAPI, global hotkeys, browser bridge.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Interop.UIAutomationClient" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Kairo.Core\Kairo.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Shared\BridgeProtocol.cs" Link="Browser\BridgeProtocol.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Kairo.Windows.Tests" />
+    <InternalsVisibleTo Include="Kairo.E2E.Tests" />
+  </ItemGroup>
+
+</Project>

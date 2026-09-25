@@ -167,6 +167,11 @@ public static class RiskClassifier
                 if (ScriptExtensions.Contains(ext)) { Raise(RiskLevel.Irreversible, "Ausführen eines Skripts."); }
                 else if (InstallerExtensions.Contains(ext) || Normalize(Path.GetFileName(target)).Contains("setup")) { Raise(RiskLevel.Irreversible, "Ausführen eines Installationsprogramms."); }
                 else if (ExecutableExtensions.Contains(ext) && LooksUntrustedLocation(target)) { Raise(RiskLevel.Sensitive, "Programm aus einem Download- oder Benutzerordner."); }
+                var exeName = Normalize(Path.GetFileNameWithoutExtension(target));
+                if (exeName is "cmd" or "powershell" or "pwsh" or "wt" or "eingabeaufforderung" or "terminal" or "windows terminal" or "regedit" or "mmc" or "gpedit")
+                {
+                    Raise(RiskLevel.Sensitive, "Startet eine Kommandozeile oder ein Systemwerkzeug.");
+                }
                 if (ContainsAny(Normalize(target), SecurityContexts) || Normalize(target).StartsWith("ms-settings:privacy") || Normalize(target).StartsWith("windowsdefender:"))
                 {
                     Raise(RiskLevel.Sensitive, "Öffnet Sicherheitseinstellungen.");

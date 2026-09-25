@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>$(WindowsTfm)</TargetFramework>
+    <RootNamespace>Kairo.BrowserHost</RootNamespace>
+    <AssemblyName>Kairo.BrowserHost</AssemblyName>
+    <Description>Chrome/Edge native messaging host of Kairo: relays messages between the Kairo extension and the Kairo desktop app.</Description>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Shared\BridgeProtocol.cs" Link="BridgeProtocol.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="com.kairo.bridge.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

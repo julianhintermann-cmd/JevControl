@@ -12,7 +12,7 @@
     <FileVersion>1.0.0.0</FileVersion>
     <!-- Allows building the Windows projects (WPF, WinRT projections) on Linux/macOS build agents. -->
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
-    <WindowsTfm>net10.0-windows10.0.19041.0</WindowsTfm>
+    <WindowsTfm>net10.0-windows10.0.22621.0</WindowsTfm>
     <SupportedOSPlatformVersion Condition="$(TargetFramework.Contains('-windows'))">10.0.17763.0</SupportedOSPlatformVersion>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
