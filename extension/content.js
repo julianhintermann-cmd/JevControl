@@ -644,7 +644,6 @@
     while (lo <= hi) {
       const mid = (lo + hi) >> 1;
       const h = headings[mid].el;
-      // eslint-disable-next-line no-bitwise
       const precedes = h === anchor || (h.compareDocumentPosition(anchor) & Node.DOCUMENT_POSITION_FOLLOWING);
       if (precedes) {
         found = headings[mid];
@@ -1304,19 +1303,20 @@
     }
     return new Promise((resolve) => {
       let done = false;
-      const finish = (v) => {
+      let timer = null;
+      const obs = new MutationObserver(() => {
+        const v = probe();
+        if (v) finish(v);
+      });
+      function finish(v) {
         if (done) return;
         done = true;
         obs.disconnect();
         clearTimeout(timer);
         resolve(v);
-      };
-      const obs = new MutationObserver(() => {
-        const v = probe();
-        if (v) finish(v);
-      });
+      }
       obs.observe(document, { childList: true, subtree: true, attributes: true });
-      const timer = setTimeout(() => finish(probe() || null), timeoutMs);
+      timer = setTimeout(() => finish(probe() || null), timeoutMs);
     });
   }
 

@@ -24,6 +24,9 @@ const {
   startStaticServer,
 } = require('./helpers.cjs');
 
+// Callbacks passed to serviceWorker.evaluate() run in background.js' global scope:
+/* global state, publicStatus, connect, disconnect */
+
 const { chromium } = loadPlaywright();
 const STUB_HOST = path.join(__dirname, 'stub-host.cjs');
 
@@ -139,10 +142,10 @@ describe('extension end-to-end (native messaging)', () => {
   });
 
   e2e('ping and unknown methods', async () => {
-    const before = Date.now();
+    const startedAt = Date.now();
     const pong = await desktop.call('ping');
     assert.equal(pong.pong, true);
-    assert.ok(pong.time >= before - 5000 && pong.time <= Date.now() + 5000);
+    assert.ok(pong.time >= startedAt - 5000 && pong.time <= Date.now() + 5000);
 
     const unknown = await desktop.request('doSomethingElse');
     assert.equal(unknown.type, 'response');
@@ -360,6 +363,10 @@ describe('extension end-to-end (native messaging)', () => {
     const framesUrl = `${server.url}/frames.html`;
     const { tabId } = await desktop.call('openTab', { url: framesUrl });
     const page = pageForUrl(framesUrl);
+    // Wait until every frame (including the cross-origin one) has finished loading, so the
+    // layout – and therefore the reported rects – are final before we click at them.
+    await page.waitForLoadState('load');
+    await Promise.all(page.frames().map((f) => f.waitForLoadState('load').catch(() => {})));
     const s = await desktop.call('snapshot', { tabId });
     // top + cross-origin + about:blank + hidden srcdoc; the error page frame is skipped
     assert.equal(s.frames, 4);
@@ -379,8 +386,18 @@ describe('extension end-to-end (native messaging)', () => {
         window.__hits += 1;
       });
     });
-    await page.mouse.click(link.rect.x + link.rect.width / 2, link.rect.y + link.rect.height / 2);
-    assert.equal(await frame.evaluate(() => window.__hits), 1);
+    // Cross-process frames receive input asynchronously, and headless Chromium occasionally drops the very
+    // first event routed to a freshly loaded out-of-process frame (hit-test data not ready yet). A click at
+    // the reported coordinates is therefore retried a few times; it must never hit anything but the link.
+    let hits = 0;
+    for (let attempt = 0; attempt < 3 && hits === 0; attempt++) {
+      await page.mouse.click(link.rect.x + link.rect.width / 2, link.rect.y + link.rect.height / 2);
+      for (let i = 0; i < 10 && hits === 0; i++) {
+        hits = await frame.evaluate(() => window.__hits);
+        if (hits === 0) await new Promise((r) => setTimeout(r, 50));
+      }
+    }
+    assert.equal(hits, 1);
 
     const blank = byLabel(s, 'Im leeren Frame');
     assert.notEqual(blank.frameId, 0);
@@ -414,8 +431,8 @@ describe('extension end-to-end (native messaging)', () => {
     await settings.close();
 
     for (const url of ['javascript:alert(1)', 'chrome://settings', 'data:text/html,hi', 'kein-url']) {
-      const r = await desktop.request('navigate', { tabId: blank.tabId, url });
-      assert.equal(r.error.code, 'bad_request', url);
+      const nav = await desktop.request('navigate', { tabId: blank.tabId, url });
+      assert.equal(nav.error.code, 'bad_request', url);
     }
     assert.deepEqual(await desktop.call('closeTab', { tabId: blank.tabId }), { closed: true });
     await desktop.waitFor((m) => m.type === 'event' && m.event === 'tabRemoved' && m.tabId === blank.tabId, 5000, 'tabRemoved');

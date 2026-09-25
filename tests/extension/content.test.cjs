@@ -38,9 +38,9 @@ function snapshot(target, opts = {}) {
 /** Calls an agent method and returns {ok, result} or {ok:false, code, message}. */
 function call(target, method, ...args) {
   return target.evaluate(
-    async ({ method, args }) => {
+    async (req) => {
       try {
-        return { ok: true, result: await window.__kairoAgent[method](...args) };
+        return { ok: true, result: await window.__kairoAgent[req.method](...req.args) };
       } catch (e) {
         return { ok: false, code: e.code, message: e.message };
       }

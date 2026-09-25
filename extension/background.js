@@ -303,10 +303,7 @@ async function handleRequest(msg) {
   }
   try {
     const method = msg.method;
-    const handler =
-      typeof method === 'string' && Object.prototype.hasOwnProperty.call(METHODS, method)
-        ? METHODS[method]
-        : null;
+    const handler = methodHandler(method);
     if (!handler) {
       throw new BridgeError('not_supported', `Unknown method: ${method}`);
     }
@@ -1016,6 +1013,10 @@ const METHODS = {
   goBack,
   reload,
 };
+
+function methodHandler(name) {
+  return typeof name === 'string' && Object.prototype.hasOwnProperty.call(METHODS, name) ? METHODS[name] : null;
+}
 
 // -----------------------------------------------------------------------------------------
 // Events → Kairo (only while connected)
