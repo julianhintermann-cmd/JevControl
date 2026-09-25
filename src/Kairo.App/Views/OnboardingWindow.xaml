@@ -30,7 +30,7 @@
       <StackPanel VerticalAlignment="Center" Visibility="{Binding Step, Converter={StaticResource EnumToVisibility}, ConverterParameter=0}">
         <Image Source="/Kairo;component/Assets/kairo-logo.png" Width="88" Height="88" HorizontalAlignment="Left" RenderOptions.BitmapScalingMode="HighQuality" />
         <TextBlock Text="Willkommen bei Kairo" Style="{StaticResource Kairo.Text.Title}" Margin="0,20,0,8" />
-        <TextBlock Style="{StaticResource Kairo.Text.Secondary}" FontSize="15"
+        <TextBlock Style="{StaticResource Kairo.Text.SecondaryStyle}" FontSize="15"
                    Text="Beschreibe einfach, was du erledigen möchtest – Kairo bedient deine Programme, liest Dateien und füllt Formulare für dich aus." />
         <StackPanel Margin="0,24,0,0">
           <Grid Margin="0,0,0,14">
@@ -64,7 +64,7 @@
       <ScrollViewer VerticalScrollBarVisibility="Auto" Visibility="{Binding Step, Converter={StaticResource EnumToVisibility}, ConverterParameter=1}">
         <StackPanel Margin="0,0,8,0">
           <TextBlock Text="OpenRouter verbinden" Style="{StaticResource Kairo.Text.Subtitle}" />
-          <TextBlock Style="{StaticResource Kairo.Text.Secondary}" Margin="0,6,0,0"
+          <TextBlock Style="{StaticResource Kairo.Text.SecondaryStyle}" Margin="0,6,0,0"
                      Text="Kairo nutzt OpenRouter für das Planungsmodell und für Jev. Dein Schlüssel wird mit Windows DPAPI verschlüsselt und ist nur für dein Windows-Benutzerkonto lesbar." />
           <Button Content="API-Schlüssel bei OpenRouter erstellen" Style="{StaticResource Kairo.Button.Link}" Command="{Binding OpenKeyPageCommand}" Margin="0,8,0,0" HorizontalAlignment="Left" />
 
@@ -125,7 +125,7 @@
           <ItemsControl ItemsSource="{Binding Results}">
             <ItemsControl.ItemTemplate>
               <DataTemplate DataType="{x:Type vm:CheckResult}">
-                <Border Style="{StaticResource Kairo.Card}" Padding="12,8" Margin="0,0,0,4">
+                <Border Style="{StaticResource Kairo.CardStyle}" Padding="12,8" Margin="0,0,0,4">
                   <Grid>
                     <Grid.ColumnDefinitions>
                       <ColumnDefinition Width="28" />
@@ -201,8 +201,8 @@
       <StackPanel VerticalAlignment="Center" Visibility="{Binding Step, Converter={StaticResource EnumToVisibility}, ConverterParameter=3}">
         <TextBlock Text="&#xE930;" Style="{StaticResource Kairo.Text.Icon}" FontSize="48" Foreground="{DynamicResource Kairo.Success}" HorizontalAlignment="Left" />
         <TextBlock Text="Kairo ist bereit" Style="{StaticResource Kairo.Text.Title}" Margin="0,16,0,8" />
-        <TextBlock Style="{StaticResource Kairo.Text.Secondary}" FontSize="15" Text="Drücke in einer beliebigen Anwendung Strg + Alt + K und beschreibe deine Aufgabe, zum Beispiel:" />
-        <Border Style="{StaticResource Kairo.Card}" Margin="0,16,0,0">
+        <TextBlock Style="{StaticResource Kairo.Text.SecondaryStyle}" FontSize="15" Text="Drücke in einer beliebigen Anwendung Strg + Alt + K und beschreibe deine Aufgabe, zum Beispiel:" />
+        <Border Style="{StaticResource Kairo.CardStyle}" Margin="0,16,0,0">
           <TextBlock Style="{StaticResource Kairo.Text.Body}" FontStyle="Italic"
                      Text="„Fülle das Kontaktformular aus, das ich gerade geöffnet habe. Meine Kontaktdaten findest du unter C:\Users\Max\Documents\Kontaktinformationen.pdf.“" />
         </Border>

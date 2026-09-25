@@ -260,7 +260,10 @@ public sealed class BrowserElementActions
             // Correction mode: focus through the DOM, then type like a human would.
             await connection.RequestAsync("act", new JsonObject { ["tabId"] = tabId, ["kid"] = kid, ["action"] = "focus" }, ActTimeout, cancellationToken).ConfigureAwait(false);
             context.Gate.ThrowIfClosed();
-            await _windows.ActivateAsync(context.TargetWindow.Handle, cancellationToken).ConfigureAwait(false);
+            if (!await _windows.ActivateAsync(context.TargetWindow.Handle, cancellationToken).ConfigureAwait(false))
+            {
+                return ActionResult.Fail(ActionErrorKind.Failed, "Das Browserfenster konnte nicht in den Vordergrund geholt werden – Kairo hat deshalb keine Tastatureingabe gesendet.");
+            }
             _input.Press("ctrl+a");
             await _input.TypeTextAsync(action.Value ?? "", element.IsMultiline, context.TypingDelayMs, () => context.Gate.IsOpen, cancellationToken).ConfigureAwait(false);
             return ActionResult.Ok("", "DOM-Fokus + SendInput");

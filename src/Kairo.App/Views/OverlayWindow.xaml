@@ -180,7 +180,7 @@
         </Grid>
 
         <!-- ================================================= approval card -->
-        <Border Style="{StaticResource Kairo.Card.Solid}" Margin="0,12,0,0" Padding="16,14"
+        <Border Style="{StaticResource Kairo.CardStyle.Solid}" Margin="0,12,0,0" Padding="16,14"
                 Visibility="{Binding Mode, Converter={StaticResource EnumToVisibility}, ConverterParameter=Approval}">
           <StackPanel>
             <StackPanel Orientation="Horizontal">
@@ -214,7 +214,7 @@
         </Border>
 
         <!-- ================================================= question card -->
-        <Border Style="{StaticResource Kairo.Card.Solid}" Margin="0,12,0,0" Padding="16,14"
+        <Border Style="{StaticResource Kairo.CardStyle.Solid}" Margin="0,12,0,0" Padding="16,14"
                 Visibility="{Binding Mode, Converter={StaticResource EnumToVisibility}, ConverterParameter=Question}">
           <StackPanel>
             <StackPanel Orientation="Horizontal">

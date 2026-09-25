@@ -255,6 +255,11 @@ internal static partial class NativeMethods
     [DllImport("user32.dll")]
     public static extern nint GetWindow(nint hWnd, uint uCmd);
 
+    public const uint GA_ROOTOWNER = 3;
+
+    [DllImport("user32.dll")]
+    public static extern nint GetAncestor(nint hWnd, uint gaFlags);
+
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool PostMessage(nint hWnd, int msg, nint wParam, nint lParam);

@@ -34,7 +34,7 @@
     <Setter Property="Foreground" Value="{DynamicResource Kairo.Text}" />
     <Setter Property="TextWrapping" Value="Wrap" />
   </Style>
-  <Style x:Key="Kairo.Text.Secondary" TargetType="TextBlock" BasedOn="{StaticResource Kairo.Text.Body}">
+  <Style x:Key="Kairo.Text.SecondaryStyle" TargetType="TextBlock" BasedOn="{StaticResource Kairo.Text.Body}">
     <Setter Property="Foreground" Value="{DynamicResource Kairo.Text.Secondary}" />
   </Style>
   <Style x:Key="Kairo.Text.Caption" TargetType="TextBlock">
@@ -65,7 +65,7 @@
   </Style>
 
   <!-- ============================================================ cards -->
-  <Style x:Key="Kairo.Card" TargetType="Border">
+  <Style x:Key="Kairo.CardStyle" TargetType="Border">
     <Setter Property="Background" Value="{DynamicResource Kairo.Card}" />
     <Setter Property="BorderBrush" Value="{DynamicResource Kairo.Card.Stroke}" />
     <Setter Property="BorderThickness" Value="1" />
@@ -73,7 +73,7 @@
     <Setter Property="Padding" Value="16" />
   </Style>
 
-  <Style x:Key="Kairo.Card.Solid" TargetType="Border" BasedOn="{StaticResource Kairo.Card}">
+  <Style x:Key="Kairo.CardStyle.Solid" TargetType="Border" BasedOn="{StaticResource Kairo.CardStyle}">
     <Setter Property="Background" Value="{DynamicResource Kairo.Card.Solid}" />
   </Style>
 
@@ -821,7 +821,7 @@
   </Style>
 
   <!-- ============================================================ settings rows -->
-  <Style x:Key="Kairo.SettingRow" TargetType="Border" BasedOn="{StaticResource Kairo.Card}">
+  <Style x:Key="Kairo.SettingRow" TargetType="Border" BasedOn="{StaticResource Kairo.CardStyle}">
     <Setter Property="Margin" Value="0,0,0,4" />
     <Setter Property="Padding" Value="16,12" />
     <Setter Property="MinHeight" Value="64" />

@@ -113,7 +113,8 @@ public class HotkeyTests
 public class InputTests
 {
     [Theory]
-    [InlineData("ctrl+s", 2, 'S')]
+    [InlineData("ctrl+s", 1, 'S')]
+    [InlineData("ctrl+shift+s", 2, 'S')]
     [InlineData("Strg+Umschalt+T", 2, 'T')]
     [InlineData("alt+f4", 1, 0x73)]
     [InlineData("enter", 0, 0x0D)]

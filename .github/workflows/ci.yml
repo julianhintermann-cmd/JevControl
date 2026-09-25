@@ -97,7 +97,9 @@ jobs:
           $exe = Get-ChildItem src/Kairo.App/bin/Release -Recurse -Filter Kairo.exe | Select-Object -First 1
           $p = Start-Process $exe.FullName -ArgumentList "--screenshots", "$PWD/artifacts/screenshots" -PassThru -Wait
           "exit code: $($p.ExitCode)"
-          Get-ChildItem artifacts/screenshots -ErrorAction SilentlyContinue | Select-Object Name, Length
+          Get-ChildItem artifacts/screenshots -ErrorAction SilentlyContinue | Select-Object Name, Length | Format-Table | Out-String | Write-Host
+          if (Test-Path artifacts/screenshots/error.txt) { Get-Content artifacts/screenshots/error.txt | Write-Host }
+          if ($p.ExitCode -ne 0) { throw "Screenshot mode failed with exit code $($p.ExitCode)" }
 
       - name: Build installer (publish self-contained + WiX MSI)
         shell: pwsh

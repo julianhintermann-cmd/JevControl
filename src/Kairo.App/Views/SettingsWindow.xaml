@@ -345,7 +345,7 @@
           <!-- ======================= Sicherheit -->
           <StackPanel Style="{StaticResource Page}" Visibility="{Binding SelectedNav.Key, Converter={StaticResource EnumToVisibility}, ConverterParameter=security}">
             <TextBlock Text="Sicherheit und Berechtigungen" Style="{StaticResource PageTitle}" />
-            <Border Style="{StaticResource Kairo.Card}" Margin="0,0,0,12">
+            <Border Style="{StaticResource Kairo.CardStyle}" Margin="0,0,0,12">
               <StackPanel>
                 <TextBlock Text="So schützt dich Kairo" Style="{StaticResource Kairo.Text.BodyStrong}" />
                 <TextBlock Style="{StaticResource Kairo.Text.Caption}" Margin="0,6,0,0"
@@ -464,7 +464,7 @@
           <!-- ======================= Datenschutz -->
           <StackPanel Style="{StaticResource Page}" Visibility="{Binding SelectedNav.Key, Converter={StaticResource EnumToVisibility}, ConverterParameter=privacy}">
             <TextBlock Text="Datenschutz" Style="{StaticResource PageTitle}" />
-            <Border Style="{StaticResource Kairo.Card}" Margin="0,0,0,12">
+            <Border Style="{StaticResource Kairo.CardStyle}" Margin="0,0,0,12">
               <StackPanel>
                 <TextBlock Text="Was verlässt deinen Computer?" Style="{StaticResource Kairo.Text.BodyStrong}" />
                 <TextBlock Style="{StaticResource Kairo.Text.Caption}" Margin="0,6,0,0"
@@ -664,7 +664,7 @@
                 </DataTemplate>
               </ListBox.ItemTemplate>
             </ListBox>
-            <Border Grid.Row="3" Style="{StaticResource Kairo.Card}" Margin="0,12,0,0" Visibility="{Binding SelectedHistory, Converter={StaticResource NotNullToVisibility}}">
+            <Border Grid.Row="3" Style="{StaticResource Kairo.CardStyle}" Margin="0,12,0,0" Visibility="{Binding SelectedHistory, Converter={StaticResource NotNullToVisibility}}">
               <StackPanel>
                 <TextBlock Text="Details" Style="{StaticResource Kairo.Text.BodyStrong}" />
                 <TextBlock Text="{Binding SelectedHistory.Record.Result}" Style="{StaticResource Kairo.Text.Body}" Margin="0,6,0,0" />
@@ -677,7 +677,7 @@
           <!-- ======================= Über -->
           <StackPanel Style="{StaticResource Page}" Visibility="{Binding SelectedNav.Key, Converter={StaticResource EnumToVisibility}, ConverterParameter=about}">
             <TextBlock Text="Über Kairo" Style="{StaticResource PageTitle}" />
-            <Border Style="{StaticResource Kairo.Card}">
+            <Border Style="{StaticResource Kairo.CardStyle}">
               <StackPanel>
                 <StackPanel Orientation="Horizontal">
                   <Image Source="/Kairo;component/Assets/kairo-logo.png" Width="64" Height="64" RenderOptions.BitmapScalingMode="HighQuality" />
@@ -696,7 +696,7 @@
               </StackPanel>
             </Border>
             <TextBlock Text="Diagnose" Style="{StaticResource Kairo.SectionHeader}" />
-            <Border Style="{StaticResource Kairo.Card}">
+            <Border Style="{StaticResource Kairo.CardStyle}">
               <StackPanel>
                 <TextBlock Text="Protokoll (ohne Inhalte, Schlüssel werden automatisch entfernt)" Style="{StaticResource Kairo.Text.Caption}" />
                 <ScrollViewer MaxHeight="260" Margin="0,8,0,0">

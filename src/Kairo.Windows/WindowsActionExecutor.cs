@@ -113,7 +113,7 @@ public sealed class WindowsActionExecutor : IActionExecutor
     private async Task<ActionResult> ExecuteVisionAsync(AgentAction action, UiElement element, ActionContext context, CancellationToken cancellationToken)
     {
         var (x, y) = element.Bounds.Center;
-        await _windows.ActivateAsync(context.TargetWindow.Handle, cancellationToken).ConfigureAwait(false);
+        if (!await EnsureForegroundAsync(context.TargetWindow, cancellationToken).ConfigureAwait(false)) { return NotForeground(); }
         context.Gate.ThrowIfClosed();
         switch (action.Kind)
         {
@@ -147,14 +147,14 @@ public sealed class WindowsActionExecutor : IActionExecutor
         {
             case ActionKind.TypeText:
             {
-                await EnsureForegroundAsync(target, cancellationToken).ConfigureAwait(false);
+                if (!await EnsureForegroundAsync(target, cancellationToken).ConfigureAwait(false)) { return NotForeground(); }
                 await _input.TypeTextAsync(action.Value ?? "", allowNewlines: true, context.TypingDelayMs, () => context.Gate.IsOpen, cancellationToken).ConfigureAwait(false);
                 return ActionResult.Ok("Text eingegeben.", "SendInput");
             }
             case ActionKind.Hotkey:
             {
                 var chord = KeyChord.Parse(action.Keys ?? "");
-                await EnsureForegroundAsync(target, cancellationToken).ConfigureAwait(false);
+                if (!await EnsureForegroundAsync(target, cancellationToken).ConfigureAwait(false)) { return NotForeground(); }
                 for (var i = 0; i < 20 && InputSimulator.UserHoldsModifier(); i++) { await Task.Delay(50, cancellationToken).ConfigureAwait(false); }
                 context.Gate.ThrowIfClosed();
                 _input.PressChord(chord);
@@ -168,7 +168,7 @@ public sealed class WindowsActionExecutor : IActionExecutor
             case ActionKind.MouseClick:
             {
                 if (action.X is not { } x || action.Y is not { } y) { return ActionResult.Fail(ActionErrorKind.InvalidArguments, "Koordinaten fehlen."); }
-                await EnsureForegroundAsync(target, cancellationToken).ConfigureAwait(false);
+                if (!await EnsureForegroundAsync(target, cancellationToken).ConfigureAwait(false)) { return NotForeground(); }
                 _input.Click(target.Bounds.X + x, target.Bounds.Y + y);
                 return ActionResult.Ok("Geklickt.", "Mausklick", structureChanged: true);
             }
@@ -177,7 +177,7 @@ public sealed class WindowsActionExecutor : IActionExecutor
                 var element = action.TargetId is { } id ? context.Snapshot?.Find(id) : null;
                 if (context.Snapshot?.Source == PerceptionSource.BrowserDom && _dom.IsConnected(target))
                 {
-                    await EnsureForegroundAsync(target, cancellationToken).ConfigureAwait(false);
+                    if (!await EnsureForegroundAsync(target, cancellationToken).ConfigureAwait(false)) { return NotForeground(); }
                     var center = target.Bounds.Center;
                     _input.Wheel(center.X, center.Y, (action.Direction ?? "down").StartsWith("up", StringComparison.OrdinalIgnoreCase) ? 5 : -5);
                     return ActionResult.Ok("Gescrollt.", "Mausrad", structureChanged: true);
@@ -263,7 +263,7 @@ public sealed class WindowsActionExecutor : IActionExecutor
         }
 
         // Keyboard fallback for any browser.
-        await EnsureForegroundAsync(target, cancellationToken).ConfigureAwait(false);
+        if (!await EnsureForegroundAsync(target, cancellationToken).ConfigureAwait(false)) { return NotForeground(); }
         switch (op)
         {
             case "new":
@@ -292,13 +292,16 @@ public sealed class WindowsActionExecutor : IActionExecutor
         return ActionResult.Ok("", "Tastenkürzel", structureChanged: true);
     }
 
-    private async Task EnsureForegroundAsync(WindowInfo target, CancellationToken cancellationToken)
+    /// <summary>Simulated input is only sent when the target window really is in the foreground.</summary>
+    private async Task<bool> EnsureForegroundAsync(WindowInfo target, CancellationToken cancellationToken)
     {
-        if (target.Handle != 0 && !await _windows.ActivateAsync(target.Handle, cancellationToken).ConfigureAwait(false))
-        {
-            _log.Warn("exec", "target window could not be activated");
-        }
+        if (target.Handle == 0 || await _windows.ActivateAsync(target.Handle, cancellationToken).ConfigureAwait(false)) { return true; }
+        _log.Warn("exec", "target window could not be activated, simulated input suppressed");
+        return false;
     }
+
+    private static ActionResult NotForeground() =>
+        ActionResult.Fail(ActionErrorKind.Failed, "Das Zielfenster konnte nicht in den Vordergrund geholt werden – Kairo hat deshalb keine Tastatur- oder Mauseingabe gesendet.");
 
     private async Task<WindowInfo?> WaitForNewWindowAsync(HashSet<nint> before, TimeSpan timeout, CancellationToken cancellationToken)
     {

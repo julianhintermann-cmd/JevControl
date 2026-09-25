@@ -90,7 +90,7 @@ public sealed class WindowService : IWindowService
     public async Task<bool> ActivateAsync(nint handle, CancellationToken cancellationToken)
     {
         if (!IsWindow(handle)) { return false; }
-        if (Interop.NativeMethods.GetForegroundWindow() == handle) { return true; }
+        if (IsForegroundFamily(handle)) { return true; }
 
         if (IsIconic(handle)) { ShowWindow(handle, SW_RESTORE); }
         ForceForeground(handle);
@@ -98,12 +98,25 @@ public sealed class WindowService : IWindowService
         // Activation is asynchronous – wait briefly until the window really is in front.
         for (var i = 0; i < 20; i++)
         {
-            if (Interop.NativeMethods.GetForegroundWindow() == handle) { return true; }
+            if (IsForegroundFamily(handle)) { return true; }
             await Task.Delay(15, cancellationToken).ConfigureAwait(false);
             if (i == 6) { ForceForeground(handle); }
         }
         _log.Warn("windows", "window activation not confirmed");
-        return Interop.NativeMethods.GetForegroundWindow() == handle;
+        return IsForegroundFamily(handle);
+    }
+
+    /// <summary>
+    /// True when the foreground window is the target itself or belongs to the same owner chain
+    /// (e.g. a modal dialog of the target) – keyboard input then reaches the target application.
+    /// </summary>
+    private static bool IsForegroundFamily(nint handle)
+    {
+        var foreground = Interop.NativeMethods.GetForegroundWindow();
+        if (foreground == 0) { return false; }
+        if (foreground == handle) { return true; }
+        var root = GetAncestor(handle, GA_ROOTOWNER);
+        return root != 0 && GetAncestor(foreground, GA_ROOTOWNER) == root;
     }
 
     /// <summary>

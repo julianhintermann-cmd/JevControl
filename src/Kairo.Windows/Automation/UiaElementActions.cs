@@ -84,18 +84,73 @@ public sealed class UiaElementActions
 
         // Keyboard: focus, select all, type (also used for rich text editors without ValuePattern).
         context.Gate.ThrowIfClosed();
-        await _windows.ActivateAsync(context.TargetWindow.Handle, cancellationToken).ConfigureAwait(false);
+        if (await RequireForegroundAsync(context, cancellationToken).ConfigureAwait(false) is { } notForeground) { return notForeground; }
         await UiaCore.RunAsync(() => { live.SetFocus(); return true; }, cancellationToken).ConfigureAwait(false);
         await Task.Delay(30, cancellationToken).ConfigureAwait(false);
         if (!await FocusIsOnAsync(live, cancellationToken).ConfigureAwait(false))
         {
-            await ClickCenterAsync(live, element, context, cancellationToken).ConfigureAwait(false);
+            var click = await ClickCenterAsync(live, element, context, cancellationToken).ConfigureAwait(false);
+            if (!click.Success) { return click; }
+            await Task.Delay(60, cancellationToken).ConfigureAwait(false);
+            if (!await FocusIsOnAsync(live, cancellationToken).ConfigureAwait(false) &&
+                _windows.GetForegroundWindow()?.Handle != context.TargetWindow.Handle)
+            {
+                // Typically a modal dialog in front of the target: typing would land there.
+                return ActionResult.Fail(ActionErrorKind.Failed, "Das Feld lässt sich nicht fokussieren – vermutlich ist ein Dialog geöffnet. Es wurde nichts eingegeben.");
+            }
         }
         context.Gate.ThrowIfClosed();
+        if (await RequireForegroundAsync(context, cancellationToken).ConfigureAwait(false) is { } lostForeground) { return lostForeground; }
         _input.Press("ctrl+a");
         _input.Press("delete");
         await _input.TypeTextAsync(value, element.IsMultiline || element.Role == ElementRole.Document, context.TypingDelayMs, () => context.Gate.IsOpen, cancellationToken).ConfigureAwait(false);
+        await WaitForTypedValueAsync(live, value, cancellationToken).ConfigureAwait(false);
         return ActionResult.Ok("", "SendInput");
+    }
+
+    /// <summary>
+    /// Simulated input is only sent when the target window really is in the foreground –
+    /// otherwise keystrokes would land in whatever window the user is looking at.
+    /// </summary>
+    private async Task<ActionResult?> RequireForegroundAsync(ActionContext context, CancellationToken cancellationToken)
+    {
+        if (context.TargetWindow.Handle == 0 || await _windows.ActivateAsync(context.TargetWindow.Handle, cancellationToken).ConfigureAwait(false))
+        {
+            return null;
+        }
+        _log.Warn("uia", "target window could not be activated, simulated input suppressed");
+        return ActionResult.Fail(ActionErrorKind.Failed, "Das Zielfenster konnte nicht in den Vordergrund geholt werden – Kairo hat deshalb keine Tastatur- oder Mauseingabe gesendet.");
+    }
+
+    /// <summary>
+    /// SendInput only queues the keystrokes; the target processes them asynchronously. Wait until the
+    /// field reports the typed value (or a short timeout) so that verification does not read a stale value.
+    /// </summary>
+    private static async Task WaitForTypedValueAsync(IUIAutomationElement live, string expected, CancellationToken cancellationToken)
+    {
+        var deadline = DateTime.UtcNow + TimeSpan.FromMilliseconds(1500);
+        while (true)
+        {
+            var state = await UiaCore.RunAsync<bool?>(() =>
+            {
+                try
+                {
+                    if (live.GetCurrentPropertyValue(P.UIA_IsValuePatternAvailablePropertyId) is not true) { return null; }
+                    return live.GetCurrentPropertyValue(P.UIA_ValueValuePropertyId) is string current && Core.Agent.Verifier.ValuesMatch(expected, current);
+                }
+                catch (COMException)
+                {
+                    return null;
+                }
+            }, cancellationToken).ConfigureAwait(false);
+            if (state is null)
+            {
+                await Task.Delay(80, cancellationToken).ConfigureAwait(false);
+                return;
+            }
+            if (state == true || DateTime.UtcNow >= deadline) { return; }
+            await Task.Delay(25, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     private static Task<bool> FocusIsOnAsync(IUIAutomationElement live, CancellationToken cancellationToken) =>
@@ -187,7 +242,7 @@ public sealed class UiaElementActions
 
         if (point is null) { return ActionResult.Fail(ActionErrorKind.Failed, "Keine klickbare Position gefunden."); }
         context.Gate.ThrowIfClosed();
-        await _windows.ActivateAsync(context.TargetWindow.Handle, cancellationToken).ConfigureAwait(false);
+        if (await RequireForegroundAsync(context, cancellationToken).ConfigureAwait(false) is { } notForeground) { return notForeground; }
         context.Gate.ThrowIfClosed();
         _input.Click(point.Value.X, point.Value.Y);
         return ActionResult.Ok("", "Mausklick", structureChanged: true);
@@ -226,7 +281,7 @@ public sealed class UiaElementActions
 
         // Keyboard fallback: open the dropdown, type the option text, confirm.
         context.Gate.ThrowIfClosed();
-        await _windows.ActivateAsync(context.TargetWindow.Handle, cancellationToken).ConfigureAwait(false);
+        if (await RequireForegroundAsync(context, cancellationToken).ConfigureAwait(false) is { } notForeground) { return notForeground; }
         await UiaCore.RunAsync(() => { live.SetFocus(); return true; }, cancellationToken).ConfigureAwait(false);
         _input.Press("alt+down");
         await Task.Delay(120, cancellationToken).ConfigureAwait(false);
@@ -376,7 +431,7 @@ public sealed class UiaElementActions
         if (done) { return ActionResult.Ok("", "ScrollPattern", structureChanged: true); }
 
         context.Gate.ThrowIfClosed();
-        await _windows.ActivateAsync(context.TargetWindow.Handle, cancellationToken).ConfigureAwait(false);
+        if (await RequireForegroundAsync(context, cancellationToken).ConfigureAwait(false) is { } notForeground) { return notForeground; }
         var center = (element?.Bounds is { IsEmpty: false } b ? b : context.TargetWindow.Bounds).Center;
         _input.Wheel(center.X, center.Y, down ? -5 : 5);
         return ActionResult.Ok("", "Mausrad", structureChanged: true);
