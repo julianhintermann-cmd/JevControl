@@ -65,17 +65,19 @@ public class OverlayTests
             var stopwatch = new Stopwatch();
             TaskCompletionSource<double>? opened = null;
             var phases = new List<string>();
+            var hotkeyAt = 0.0;
             Assert.Equal(HotkeyRegistrationResult.Registered, hotkeys.Register(binding, () =>
             {
-                phases.Add($"WM_HOTKEY {stopwatch.Elapsed.TotalMilliseconds:0} ms");
+                // Time from SendInput until Windows delivers WM_HOTKEY is outside Kairo's control; it is reported only.
+                hotkeyAt = stopwatch.Elapsed.TotalMilliseconds;
+                phases.Add($"WM_HOTKEY after {hotkeyAt:0} ms");
                 dispatcher.BeginInvoke(() =>
                 {
-                    phases.Add($"dispatcher {stopwatch.Elapsed.TotalMilliseconds:0} ms");
                     var anchor = windows.GetForegroundWindow()?.Handle ?? 0;
-                    phases.Add($"anchor {stopwatch.Elapsed.TotalMilliseconds:0} ms");
                     overlay.ShowForInput(anchor);
-                    phases.Add($"overlay [{overlay.LastOpenTimings}]");
-                    opened?.TrySetResult(stopwatch.Elapsed.TotalMilliseconds);
+                    var kairoMs = stopwatch.Elapsed.TotalMilliseconds - hotkeyAt;
+                    phases.Add($"visible {kairoMs:0} ms after WM_HOTKEY [{overlay.LastOpenTimings}]");
+                    opened?.TrySetResult(kairoMs);
                 });
             }, out _));
 
@@ -137,7 +139,7 @@ public class OverlayTests
             return (openMs, visible, inputMode, focused, enterHandled, typed, hiddenAfterEsc, reopenMs, reopened, Diagnostics: string.Join(" | ", diagnostics));
         });
 
-        Console.WriteLine($"Overlay opened {result.openMs:0} ms after the key press, input focused: {result.focused}, reopened after {result.reopenMs:0} ms. {result.Diagnostics}");
+        Console.WriteLine($"Overlay visible {result.openMs:0} ms after WM_HOTKEY, input focused: {result.focused}, reopened after {result.reopenMs:0} ms. {result.Diagnostics}");
         Assert.True(result.openMs is not null, "The hotkey did not open the overlay. " + result.Diagnostics);
         Assert.True(result.visible, "Overlay not visible after opening. " + result.Diagnostics);
         Assert.True(result.inputMode);
@@ -146,7 +148,7 @@ public class OverlayTests
         Assert.Equal("a\nb", result.typed?.Replace("\r\n", "\n"));
         Assert.True(result.hiddenAfterEsc, "ESC did not close the overlay. " + result.Diagnostics);
         Assert.True(result.reopenMs is not null && result.reopened, "The hotkey did not reopen the overlay. " + result.Diagnostics);
-        // Measured from the simulated key press (SendInput → WM_HOTKEY → dispatcher → visible window).
-        Assert.True(result.openMs < 300, $"Overlay took {result.openMs:0} ms to open. {result.Diagnostics}");
+        // Kairo's part: WM_HOTKEY → dispatcher → foreground window lookup → visible, focused overlay.
+        Assert.True(result.openMs < 150, $"Overlay took {result.openMs:0} ms to open. {result.Diagnostics}");
     }
 }

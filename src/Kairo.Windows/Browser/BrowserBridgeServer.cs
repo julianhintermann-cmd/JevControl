@@ -157,17 +157,23 @@ public sealed class BrowserBridgeServer : IAsyncDisposable
     }
 
     /// <summary>
-    /// The pipe's ACL allows only the current user (this replaces PipeOptions.CurrentUserOnly, which .NET does not
-    /// allow together with an explicit PipeSecurity). The client additionally has to be Kairo.BrowserHost.exe.
+    /// Same protection as PipeOptions.CurrentUserOnly (which .NET does not allow together with an explicit
+    /// PipeSecurity): only the current user gets access, and the pipe is owned by the token's default owner.
+    /// The host connects with PipeOptions.CurrentUserOnly, which compares the pipe owner with exactly that SID –
+    /// for an elevated administrator it is the Administrators group, not the user. The client additionally has
+    /// to be Kairo.BrowserHost.exe (see <see cref="IsTrustedClient"/>).
     /// </summary>
     private NamedPipeServerStream CreatePipe()
     {
+        using var identity = WindowsIdentity.GetCurrent();
+        var owner = identity.Owner ?? identity.User!;
         var security = new PipeSecurity();
-        var user = WindowsIdentity.GetCurrent().User!;
-        security.SetOwner(user);
-        // FullControl for the current user only – like PipeOptions.CurrentUserOnly does internally. ReadWrite alone
-        // lacks SYNCHRONIZE, which NamedPipeClientStream requests, so the host would get "access denied".
-        security.AddAccessRule(new PipeAccessRule(user, PipeAccessRights.FullControl, AccessControlType.Allow));
+        security.AddAccessRule(new PipeAccessRule(owner, PipeAccessRights.ReadWrite | PipeAccessRights.CreateNewInstance, AccessControlType.Allow));
+        if (identity.User is { } user && user != owner)
+        {
+            security.AddAccessRule(new PipeAccessRule(user, PipeAccessRights.ReadWrite | PipeAccessRights.CreateNewInstance, AccessControlType.Allow));
+        }
+        security.SetOwner(owner);
         return NamedPipeServerStreamAcl.Create(_pipeName, PipeDirection.InOut, NamedPipeServerStream.MaxAllowedServerInstances,
             PipeTransmissionMode.Byte, PipeOptions.Asynchronous, 64 * 1024, 64 * 1024, security);
     }

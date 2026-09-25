@@ -157,12 +157,18 @@ Die Prüfung erfolgt automatisiert in GitHub Actions: `ubuntu-latest` und `windo
   - Freigabe vor dem Absenden, abgelehntes Absenden wird nicht ausgeführt,
   - Abbruch während der Planung und während des Tippens.
 - Alle Oberflächen hell und dunkel auf Windows gerendert, siehe [docs/screenshots](docs/screenshots).
+- Installer:
+  - Das MSI (WiX v5, x64, pro Benutzer, self-contained) wird gebaut.
+  - Die stille Installation wird geprüft: Dateien, Startmenü- und Desktopverknüpfung, Autostart,
+    Native-Messaging-Registrierung.
+  - `Kairo.exe --selftest` läuft aus der Installation.
+  - Deinstallation mit Behalten der Daten, Neuinstallation und Deinstallation mit sicherem Löschen der Daten
+    sind erfolgreich (`installer/test-install.ps1`).
 
 **In Arbeit (erste Windows-Läufe nach Korrekturen)**
 - Edge-End-to-End-Tests: über UI Automation und über die Erweiterung.
 - Native-Messaging-Relay mit dem echten `Kairo.BrowserHost.exe`.
-- Öffnungszeit des Overlays beim ersten Hotkey (Ziel < 300 ms).
-- MSI-Build mit WiX und der Installations-/Deinstallationstest.
+- Öffnungszeit des Overlays (Ziel: < 150 ms vom Hotkey bis zum fokussierten Eingabefeld).
 
 **Nicht verifiziert bzw. bewusst offen**
 - **Live-Aufrufe an OpenRouter und Jev** wurden nicht ausgeführt, weil in der Entwicklungsumgebung kein

@@ -68,18 +68,33 @@ public sealed class UiaElementActions
     {
         if (!context.PreferInputSimulation)
         {
-            var structured = await UiaCore.RunAsync(() =>
+            var applied = await UiaCore.RunAsync(() =>
             {
-                if (live.GetCurrentPropertyValue(P.UIA_IsValuePatternAvailablePropertyId) is true &&
-                    live.GetCurrentPropertyValue(P.UIA_ValueIsReadOnlyPropertyId) is not true &&
-                    live.GetCurrentPattern(PT.UIA_ValuePatternId) is IUIAutomationValuePattern vp)
+                try
                 {
-                    vp.SetValue(value);
-                    return live.GetCurrentPropertyValue(P.UIA_ValueValuePropertyId) is string current && Core.Agent.Verifier.ValuesMatch(value, current);
+                    if (live.GetCurrentPropertyValue(P.UIA_IsValuePatternAvailablePropertyId) is true &&
+                        live.GetCurrentPropertyValue(P.UIA_ValueIsReadOnlyPropertyId) is not true &&
+                        live.GetCurrentPattern(PT.UIA_ValuePatternId) is IUIAutomationValuePattern vp)
+                    {
+                        vp.SetValue(value);
+                        return true;
+                    }
+                }
+                catch (COMException ex)
+                {
+                    // e.g. Chromium rejects SetValue for <input type="email|tel">: fall back to the keyboard.
+                    _log.Debug("uia", $"SetValue rejected (0x{ex.HResult:X8}), using keyboard input");
                 }
                 return false;
             }, cancellationToken).ConfigureAwait(false);
-            if (structured) { return ActionResult.Ok("", "ValuePattern"); }
+
+            // Password values cannot be read back; other providers (Chromium) may apply the value asynchronously.
+            if (applied && (element.IsPassword || await WaitForStateAsync(
+                    () => live.GetCurrentPropertyValue(P.UIA_ValueValuePropertyId) is string current && Core.Agent.Verifier.ValuesMatch(value, current),
+                    TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false)))
+            {
+                return ActionResult.Ok("", "ValuePattern");
+            }
         }
 
         // Keyboard: focus, select all, type (also used for rich text editors without ValuePattern).
@@ -251,24 +266,60 @@ public sealed class UiaElementActions
     // ---------------------------------------------------------------- checkbox / radio
     private async Task<ActionResult> SetCheckedAsync(IUIAutomationElement live, UiElement element, bool desired, ActionContext context, CancellationToken cancellationToken)
     {
-        var done = await UiaCore.RunAsync(() =>
+        bool IsDesired()
         {
             if (live.GetCurrentPropertyValue(P.UIA_IsTogglePatternAvailablePropertyId) is true && live.GetCurrentPattern(PT.UIA_TogglePatternId) is IUIAutomationTogglePattern toggle)
             {
-                for (var i = 0; i < 3 && (toggle.CurrentToggleState == ToggleState.ToggleState_On) != desired; i++) { toggle.Toggle(); }
                 return (toggle.CurrentToggleState == ToggleState.ToggleState_On) == desired;
             }
-            if (desired && live.GetCurrentPropertyValue(P.UIA_IsSelectionItemPatternAvailablePropertyId) is true && live.GetCurrentPattern(PT.UIA_SelectionItemPatternId) is IUIAutomationSelectionItemPattern select)
-            {
-                select.Select();
-                return select.CurrentIsSelected != 0;
-            }
-            return false;
-        }, cancellationToken).ConfigureAwait(false);
+            return live.GetCurrentPropertyValue(P.UIA_IsSelectionItemPatternAvailablePropertyId) is true &&
+                   live.GetCurrentPattern(PT.UIA_SelectionItemPatternId) is IUIAutomationSelectionItemPattern item && (item.CurrentIsSelected != 0) == desired;
+        }
 
-        if (done && !context.PreferInputSimulation) { return ActionResult.Ok("", "TogglePattern"); }
-        if (element.IsChecked == desired && context.PreferInputSimulation is false) { return ActionResult.Ok("", "unverändert"); }
-        return await ClickCenterAsync(live, element, context, cancellationToken).ConfigureAwait(false);
+        if (await UiaCore.RunAsync(() => { try { return IsDesired(); } catch (COMException) { return false; } }, cancellationToken).ConfigureAwait(false))
+        {
+            return ActionResult.Ok("", "unverändert");
+        }
+
+        if (!context.PreferInputSimulation)
+        {
+            // Toggle exactly once and wait for the provider to report the new state. Toggling again because
+            // an asynchronous provider (Chromium) still reports the old state would flip it back.
+            var invoked = await UiaCore.RunAsync(() =>
+            {
+                try
+                {
+                    if (live.GetCurrentPropertyValue(P.UIA_IsTogglePatternAvailablePropertyId) is true && live.GetCurrentPattern(PT.UIA_TogglePatternId) is IUIAutomationTogglePattern toggle)
+                    {
+                        toggle.Toggle();
+                        return true;
+                    }
+                    if (desired && live.GetCurrentPropertyValue(P.UIA_IsSelectionItemPatternAvailablePropertyId) is true && live.GetCurrentPattern(PT.UIA_SelectionItemPatternId) is IUIAutomationSelectionItemPattern select)
+                    {
+                        select.Select();
+                        return true;
+                    }
+                }
+                catch (COMException ex)
+                {
+                    _log.Debug("uia", $"Toggle rejected (0x{ex.HResult:X8}), using a click");
+                }
+                return false;
+            }, cancellationToken).ConfigureAwait(false);
+            if (invoked && await WaitForStateAsync(IsDesired, TimeSpan.FromMilliseconds(1500), cancellationToken).ConfigureAwait(false))
+            {
+                return ActionResult.Ok("", "TogglePattern");
+            }
+            if (invoked && await UiaCore.RunAsync(() => { try { return IsDesired(); } catch (COMException) { return false; } }, cancellationToken).ConfigureAwait(false))
+            {
+                return ActionResult.Ok("", "TogglePattern");
+            }
+        }
+
+        var click = await ClickCenterAsync(live, element, context, cancellationToken).ConfigureAwait(false);
+        if (!click.Success) { return click; }
+        await WaitForStateAsync(IsDesired, TimeSpan.FromMilliseconds(1000), cancellationToken).ConfigureAwait(false);
+        return click;
     }
 
     // ---------------------------------------------------------------- dropdowns / lists / radio groups
@@ -276,8 +327,27 @@ public sealed class UiaElementActions
     {
         if (string.IsNullOrWhiteSpace(option)) { return ActionResult.Fail(ActionErrorKind.InvalidArguments, "Keine Option angegeben."); }
 
-        var result = await UiaCore.RunAsync(() => SelectStructured(live, element, option), cancellationToken).ConfigureAwait(false);
-        if (result is not null) { return result; }
+        bool Selected() => IsOptionSelected(live, option);
+
+        if (!context.PreferInputSimulation)
+        {
+            ActionResult? result;
+            try
+            {
+                result = await UiaCore.RunAsync(() => SelectStructured(live, element, option), cancellationToken).ConfigureAwait(false);
+            }
+            catch (COMException ex)
+            {
+                _log.Debug("uia", $"structured selection failed (0x{ex.HResult:X8}), using the keyboard");
+                result = null;
+            }
+            // Only accept the structured selection when the control really reports the option (some providers
+            // apply it asynchronously, some ignore a selection made in a popup that is closed again).
+            if (result is not null && await WaitForStateAsync(Selected, TimeSpan.FromMilliseconds(800), cancellationToken).ConfigureAwait(false))
+            {
+                return result;
+            }
+        }
 
         // Keyboard fallback: open the dropdown, type the option text, confirm.
         context.Gate.ThrowIfClosed();
@@ -289,7 +359,47 @@ public sealed class UiaElementActions
         await Task.Delay(80, cancellationToken).ConfigureAwait(false);
         context.Gate.ThrowIfClosed();
         _input.Press("enter");
+        await WaitForStateAsync(Selected, TimeSpan.FromMilliseconds(800), cancellationToken).ConfigureAwait(false);
         return ActionResult.Ok("", "Tastatur");
+    }
+
+    /// <summary>Selected option of a combo box / list, read from the Value or Selection pattern.</summary>
+    private static bool IsOptionSelected(IUIAutomationElement live, string option)
+    {
+        string? current = null;
+        if (live.GetCurrentPropertyValue(P.UIA_IsValuePatternAvailablePropertyId) is true)
+        {
+            current = live.GetCurrentPropertyValue(P.UIA_ValueValuePropertyId) as string;
+        }
+        if (string.IsNullOrWhiteSpace(current) &&
+            live.GetCurrentPropertyValue(P.UIA_IsSelectionPatternAvailablePropertyId) is true &&
+            live.GetCurrentPattern(PT.UIA_SelectionPatternId) is IUIAutomationSelectionPattern selection)
+        {
+            var selected = selection.GetCurrentSelection();
+            if (selected is not null && selected.Length > 0) { current = selected.GetElement(0).CurrentName; }
+        }
+        if (string.IsNullOrWhiteSpace(current)) { return false; }
+        var a = ElementMatcher.Normalize(current);
+        var b = ElementMatcher.Normalize(option);
+        return a == b || a.Contains(b, StringComparison.Ordinal) || ElementMatcher.TextSimilarity(a, b) >= 0.85;
+    }
+
+    /// <summary>
+    /// Polls a UI Automation state. Pattern calls of some providers (Chromium, UWP) take effect asynchronously,
+    /// so reading the state immediately after the call can still show the old state.
+    /// </summary>
+    private static async Task<bool> WaitForStateAsync(Func<bool> check, TimeSpan timeout, CancellationToken cancellationToken)
+    {
+        var deadline = DateTime.UtcNow + timeout;
+        while (true)
+        {
+            bool ok;
+            try { ok = await UiaCore.RunAsync(check, cancellationToken).ConfigureAwait(false); }
+            catch (COMException) { ok = false; }
+            if (ok) { return true; }
+            if (DateTime.UtcNow >= deadline) { return false; }
+            await Task.Delay(40, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     private ActionResult? SelectStructured(IUIAutomationElement live, UiElement element, string option)
@@ -320,20 +430,23 @@ public sealed class UiaElementActions
             return ActionResult.Ok("", "ValuePattern");
         }
 
+        var itemCondition = automation.CreateOrCondition(
+            automation.CreatePropertyCondition(P.UIA_ControlTypePropertyId, CT.UIA_ListItemControlTypeId),
+            automation.CreatePropertyCondition(P.UIA_ControlTypePropertyId, CT.UIA_MenuItemControlTypeId));
+
+        // Chromium exposes the options of a collapsed <select>; selecting them directly avoids the popup
+        // (closing the popup again can discard a selection made in it).
+        var item = BestMatch(live.FindAll(TreeScope.TreeScope_Descendants, itemCondition), option);
         IUIAutomationExpandCollapsePattern? expand = null;
-        if (live.GetCurrentPropertyValue(P.UIA_IsExpandCollapsePatternAvailablePropertyId) is true)
+        if (item is null && live.GetCurrentPropertyValue(P.UIA_IsExpandCollapsePatternAvailablePropertyId) is true)
         {
+            // WPF / WinForms create the list items only when the dropdown is open.
             expand = live.GetCurrentPattern(PT.UIA_ExpandCollapsePatternId) as IUIAutomationExpandCollapsePattern;
             try { expand?.Expand(); }
             catch (COMException) { expand = null; }
             Thread.Sleep(150);
+            item = BestMatch(live.FindAll(TreeScope.TreeScope_Descendants, itemCondition), option);
         }
-
-        var itemCondition = automation.CreateOrCondition(
-            automation.CreatePropertyCondition(P.UIA_ControlTypePropertyId, CT.UIA_ListItemControlTypeId),
-            automation.CreatePropertyCondition(P.UIA_ControlTypePropertyId, CT.UIA_MenuItemControlTypeId));
-        var items = live.FindAll(TreeScope.TreeScope_Descendants, itemCondition);
-        var item = BestMatch(items, option);
         if (item is null && expand is not null)
         {
             // Some combo boxes render their list as a separate popup window: search from the root.
