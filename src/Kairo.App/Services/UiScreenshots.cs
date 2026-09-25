@@ -124,7 +124,18 @@ public static class UiScreenshots
         using (var dc = visual.RenderOpen())
         {
             dc.DrawRectangle(window.Background is SolidColorBrush { Color.A: > 0 } b ? b : (Brush)Application.Current.Resources["Kairo.Window.Background"], null, new Rect(0, 0, width, height));
-            dc.DrawRectangle(new VisualBrush(root), null, new Rect(0, 0, root.ActualWidth, root.ActualHeight));
+            // 1:1 – a default VisualBrush would stretch the visual's descendant bounds (including shadows) into the rectangle.
+            var content = new Rect(0, 0, root.ActualWidth, root.ActualHeight);
+            dc.DrawRectangle(new VisualBrush(root)
+            {
+                Stretch = Stretch.None,
+                AlignmentX = AlignmentX.Left,
+                AlignmentY = AlignmentY.Top,
+                ViewboxUnits = BrushMappingMode.Absolute,
+                Viewbox = content,
+                ViewportUnits = BrushMappingMode.Absolute,
+                Viewport = content,
+            }, null, content);
         }
         var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
         bitmap.Render(visual);
