@@ -74,7 +74,20 @@ public sealed class KairoLogger : IDisposable
     public void Warn(string category, string message) => Log(KairoLogLevel.Warning, category, message);
 
     public void Error(string category, string message, Exception? exception = null) =>
-        Log(KairoLogLevel.Error, category, exception is null ? message : $"{message} [{exception.GetType().Name}: {exception.Message}]");
+        Log(KairoLogLevel.Error, category, exception is null ? message : $"{message} [{Describe(exception)}]");
+
+    /// <summary>
+    /// Exception type, message and the top stack frames. Frames only name methods (no user content) and are what
+    /// makes a crash report from a user's machine actionable.
+    /// </summary>
+    public static string Describe(Exception exception, int maxFrames = 8)
+    {
+        var frames = (exception.StackTrace ?? "")
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Take(maxFrames);
+        var text = $"{exception.GetType().FullName}: {exception.Message} | {string.Join(" | ", frames)}";
+        return exception.InnerException is { } inner ? $"{text} ---> {Describe(inner, 4)}" : text;
+    }
 
     public void Log(KairoLogLevel level, string category, string message)
     {

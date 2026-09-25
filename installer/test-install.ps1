@@ -314,6 +314,74 @@ else {
     Fail 'Kairo.exe --selftest could not run (Kairo.exe missing)'
 }
 
+# ------------------------------------------------------------------------------------------------ normal start
+# Start Kairo exactly like the Start menu shortcut does (no command line switches): tray, hotkeys, browser bridge,
+# first-run setup window. The self test above does not cover this path.
+Write-Section 'Starting Kairo normally (like the Start menu shortcut)'
+Add-Type -TypeDefinition @"
+using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using System.Text;
+public static class KairoTestWindows {
+    private delegate bool EnumProc(IntPtr hwnd, IntPtr param);
+    [DllImport("user32.dll")] private static extern bool EnumWindows(EnumProc callback, IntPtr param);
+    [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hwnd, out uint processId);
+    [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr hwnd);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetWindowText(IntPtr hwnd, StringBuilder text, int max);
+    public static string[] VisibleTitles(int processId) {
+        var titles = new List<string>();
+        EnumWindows(delegate (IntPtr hwnd, IntPtr param) {
+            uint pid;
+            GetWindowThreadProcessId(hwnd, out pid);
+            if (pid == processId && IsWindowVisible(hwnd)) {
+                var text = new StringBuilder(256);
+                GetWindowText(hwnd, text, 256);
+                titles.Add(text.ToString());
+            }
+            return true;
+        }, IntPtr.Zero);
+        return titles.ToArray();
+    }
+}
+"@
+$kairoLogDir = Join-Path $env:LOCALAPPDATA 'Kairo\logs'
+$startupError = Join-Path $kairoLogDir 'startup-error.txt'
+Remove-Item -LiteralPath $startupError -Force -ErrorAction SilentlyContinue
+if (Test-Path -LiteralPath $kairoExe) {
+    $app = Start-Process -FilePath $kairoExe -WorkingDirectory $installDir -PassThru
+    $titles = @()
+    $deadline = (Get-Date).AddSeconds(45)
+    while ((Get-Date) -lt $deadline) {
+        Start-Sleep -Milliseconds 500
+        if (Test-Path -LiteralPath $startupError) { break }
+        $app.Refresh()
+        if ($app.HasExited) { break }
+        $titles = @([KairoTestWindows]::VisibleTitles($app.Id))
+        if ($titles -contains 'Kairo einrichten') { break }
+    }
+    $app.Refresh()
+    Write-Host "  Visible windows: $($titles -join ' | ')"
+    Assert-True (-not (Test-Path -LiteralPath $startupError)) 'Kairo started without a startup error'
+    if (Test-Path -LiteralPath $startupError) {
+        Write-Host "---- $startupError ----"
+        Get-Content -LiteralPath $startupError | ForEach-Object { Write-Host $_ }
+    }
+    Assert-True (-not $app.HasExited) "Kairo.exe keeps running after the start (exit code $(if ($app.HasExited) { $app.ExitCode } else { '-' }))"
+    Assert-True ($titles -contains 'Kairo einrichten') 'The first-run setup window "Kairo einrichten" is shown'
+    $kairoLog = Get-ChildItem -LiteralPath $kairoLogDir -Filter 'kairo-*.log' -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    if ($kairoLog) {
+        Write-Host "---- $($kairoLog.FullName) (tail) ----"
+        Get-Content -LiteralPath $kairoLog.FullName -Tail 30 | ForEach-Object { Write-Host $_ }
+    }
+    if (-not $app.HasExited) { Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue }
+    Get-Process -Name 'Kairo.BrowserHost' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 1
+}
+else {
+    Fail 'Kairo.exe could not be started (missing)'
+}
+
 $running = @(Get-Process -Name 'Kairo', 'Kairo.BrowserHost' -ErrorAction SilentlyContinue)
 if ($running.Count -gt 0) {
     Warn "Kairo processes are still running before uninstall (the MSI closes them): $(($running | ForEach-Object { $_.Id }) -join ', ')"

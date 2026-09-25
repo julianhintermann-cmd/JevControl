@@ -97,8 +97,33 @@ public partial class App : Application, IAppHost
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Kairo konnte nicht gestartet werden:\n\n{Kairo.Core.Telemetry.Redactor.Redact(ex.Message)}", "Kairo", MessageBoxButton.OK, MessageBoxImage.Error);
+            var report = WriteStartupErrorReport(ex);
+            _runtime?.Log.Error("app", "startup failed", ex);
+            MessageBox.Show(
+                $"Kairo konnte nicht gestartet werden:\n\n{Kairo.Core.Telemetry.Redactor.Redact(ex.Message)}" +
+                (report is null ? "" : $"\n\nTechnische Details (ohne persönliche Daten) wurden gespeichert unter:\n{report}"),
+                "Kairo", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(1);
+        }
+    }
+
+    /// <summary>Full exception with stack trace for support – redacted, no field values or keys.</summary>
+    private static string? WriteStartupErrorReport(Exception ex)
+    {
+        try
+        {
+            var directory = KairoPaths.ForCurrentUser().LogDirectory;
+            Directory.CreateDirectory(directory);
+            var file = Path.Combine(directory, "startup-error.txt");
+            File.WriteAllText(file,
+                $"Kairo {typeof(App).Assembly.GetName().Version} – Startfehler {DateTimeOffset.Now:O}\n" +
+                $"Windows {Environment.OSVersion.Version}, .NET {Environment.Version}, {(Environment.Is64BitProcess ? "x64" : "x86")}\n\n" +
+                Kairo.Core.Telemetry.Redactor.Redact(ex.ToString()));
+            return file;
+        }
+        catch (Exception)
+        {
+            return null;
         }
     }
 
@@ -360,6 +385,7 @@ public partial class App : Application, IAppHost
     private void OnDispatcherException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         _runtime?.Log.Error("app", "unhandled UI exception", e.Exception);
+        if (_runtime is null) { WriteStartupErrorReport(e.Exception); }
         e.Handled = true;
         if (_shuttingDown) { return; }
         MessageBox.Show($"Ein unerwarteter Fehler ist aufgetreten:\n\n{Kairo.Core.Telemetry.Redactor.Redact(e.Exception.Message)}", "Kairo", MessageBoxButton.OK, MessageBoxImage.Warning);
