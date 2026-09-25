@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Kairo.Core</RootNamespace>
+    <Description>Platform-independent agent core of Kairo: planning, Jev decisions, permissions, perception models, file readers.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="PdfPig" />
+    <PackageReference Include="DocumentFormat.OpenXml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Kairo.Core.Tests" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kontakt – Muster AG</title>
+    <style>
+      body { font-family: system-ui, sans-serif; max-width: 760px; margin: 24px auto; padding: 0 16px; }
+      nav a { margin-right: 12px; }
+      .row { margin: 10px 0; }
+      label { display: block; margin-bottom: 2px; }
+      label.inline { display: inline; }
+      input, select, textarea { font: inherit; padding: 4px 6px; }
+      .error { color: #b00020; border: 1px solid #b00020; padding: 8px; }
+      .invalid-feedback { color: #b00020; }
+      #notiz { min-height: 40px; border: 1px solid #999; padding: 4px; }
+      [role="combobox"] { display: inline-block; min-width: 160px; border: 1px solid #999; padding: 4px; cursor: pointer; }
+      [role="listbox"] { list-style: none; margin: 0; padding: 0; border: 1px solid #999; width: 170px; }
+      [role="option"] { padding: 4px; cursor: pointer; }
+      .spacer { height: 1600px; }
+      pre#state { background: #f4f4f4; padding: 8px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <nav aria-label="Hauptnavigation">
+        <a href="/">Startseite</a>
+        <a href="/produkte">Produkte</a>
+        <a href="#kontakt">Kontakt</a>
+      </nav>
+    </header>
+
+    <main id="kontakt">
+      <h1>Kontaktformular</h1>
+      <p>Wir melden uns innerhalb von zwei Werktagen bei Ihnen.</p>
+      <div class="error" role="alert" id="form-error">Bitte füllen Sie alle Pflichtfelder aus.</div>
+
+      <form id="contact" action="/senden" method="post">
+        <input type="hidden" name="csrf" value="geheimes-token-123" />
+        <input type="text" name="honeypot" style="display: none" aria-label="Nicht ausfüllen" />
+
+        <fieldset>
+          <legend>Persönliche Angaben</legend>
+
+          <div class="row">
+            <span id="anrede-label">Anrede</span>
+            <div id="anrede" role="combobox" tabindex="0" aria-labelledby="anrede-label"
+                 aria-haspopup="listbox" aria-expanded="false" aria-controls="anrede-list">Bitte wählen</div>
+            <ul id="anrede-list" role="listbox" hidden>
+              <li role="option" data-value="herr">Herr</li>
+              <li role="option" data-value="frau">Frau</li>
+              <li role="option" data-value="divers">Divers</li>
+            </ul>
+          </div>
+
+          <div class="row">
+            <label for="vorname">Vorname *</label>
+            <input id="vorname" name="vorname" required autocomplete="given-name" />
+          </div>
+
+          <div class="row">
+            <label>Nachname * <input name="nachname" required autocomplete="family-name" /></label>
+          </div>
+
+          <div class="row">
+            <label for="email">E-Mail-Adresse</label>
+            <input type="email" id="email" name="email" autocomplete="email" required placeholder="name@example.com" />
+            <div class="invalid-feedback" style="display: none">Bitte geben Sie eine gültige E-Mail-Adresse ein.</div>
+          </div>
+
+          <div class="row">
+            <span id="tel-label">Telefon</span> <span id="tel-hint">(optional)</span>
+            <input type="tel" name="telefon" aria-labelledby="tel-label tel-hint" autocomplete="tel" />
+          </div>
+        </fieldset>
+
+        <section aria-label="Firmendaten">
+          <div class="row">
+            <input name="firma" placeholder="Firma" autocomplete="organization" />
+          </div>
+          <div class="row">
+            <select name="land" aria-label="Land" autocomplete="country">
+              <option value="">Bitte wählen</option>
+              <option value="CH">Schweiz</option>
+              <option value="DE">Deutschland</option>
+              <option value="AT">Österreich</option>
+            </select>
+          </div>
+          <div class="row">
+            <span>Postleitzahl</span> <input name="plz" inputmode="numeric" maxlength="5" />
+          </div>
+          <div class="row">
+            <label for="ort">Ort</label>
+            <input id="ort" name="ort" role="combobox" aria-autocomplete="list" aria-expanded="false"
+                   aria-controls="ort-list" autocomplete="off" />
+            <ul id="ort-list" role="listbox" hidden></ul>
+          </div>
+          <div class="row">
+            <input type="url" name="website" title="Webseite" />
+          </div>
+          <div class="row">
+            <input name="kundennummer" aria-label="Kundennummer" value="K-1001" disabled />
+          </div>
+        </section>
+
+        <h2>Ihre Nachricht</h2>
+        <div class="row">
+          <label for="nachricht">Nachricht</label>
+          <textarea id="nachricht" name="nachricht" rows="4" required></textarea>
+        </div>
+        <div class="row">
+          <div id="notiz" contenteditable="true" aria-label="Interne Notiz"></div>
+        </div>
+
+        <h2>Zugang</h2>
+        <div class="row">
+          <label for="username">Benutzername</label>
+          <input id="username" name="username" autocomplete="username" />
+        </div>
+        <div class="row">
+          <label for="passwort">Passwort</label>
+          <input type="password" id="passwort" name="passwort" autocomplete="new-password" />
+        </div>
+
+        <div class="row">
+          <label class="inline"><input type="checkbox" name="datenschutz" required /> Ich akzeptiere die Datenschutzerklärung</label>
+        </div>
+        <div class="row">
+          <input type="checkbox" id="newsletter" name="newsletter" />
+          <label class="inline" for="newsletter">Newsletter abonnieren</label>
+        </div>
+
+        <div class="row">
+          <iframe id="gutschein-frame" title="Gutschein" style="width: 100%; height: 130px; border: 0"
+                  srcdoc="<!doctype html><html lang=de><head><meta charset=utf-8></head><body><h3>Gutschein einlösen</h3><label for=code>Gutscheincode</label><input id=code name=code autocomplete=off></body></html>"></iframe>
+        </div>
+
+        <button type="submit">Absenden</button>
+        <p id="submitted"></p>
+      </form>
+
+      <h2>Formularzustand</h2>
+      <pre id="state">{}</pre>
+      <div class="spacer"></div>
+      <footer><a href="/impressum">Impressum</a></footer>
+    </main>
+
+    <script>
+      // --- React-like controlled input -------------------------------------------------
+      // Mimics React's value tracker: the instance gets an own `value` property whose setter
+      // records the "last known" value. On `input`, the state only updates when the real DOM
+      // value differs from the tracked one. A naive `el.value = x` therefore does NOT update
+      // the state; setting the value via the prototype setter (like Kairo does) does.
+      (function () {
+        const state = { username: '' };
+        window.__reactState = state;
+        const el = document.getElementById('username');
+        const proto = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+        let tracked = el.value;
+        Object.defineProperty(el, 'value', {
+          configurable: true,
+          get() { return proto.get.call(this); },
+          set(v) { tracked = String(v); proto.set.call(this, v); },
+        });
+        el.addEventListener('input', function () {
+          const current = proto.get.call(el);
+          if (current !== tracked) {
+            tracked = current;
+            state.username = current;
+            document.getElementById('state').textContent = JSON.stringify(state);
+          }
+        });
+      })();
+
+      // --- Custom combobox ("Anrede") ---------------------------------------------------
+      (function () {
+        const box = document.getElementById('anrede');
+        const list = document.getElementById('anrede-list');
+        box.addEventListener('click', function () {
+          const open = list.hidden;
+          list.hidden = !open;
+          box.setAttribute('aria-expanded', String(open));
+        });
+        list.addEventListener('click', function (e) {
+          const opt = e.target.closest('[role="option"]');
+          if (!opt) return;
+          for (const o of list.querySelectorAll('[role="option"]')) o.setAttribute('aria-selected', 'false');
+          opt.setAttribute('aria-selected', 'true');
+          box.textContent = opt.textContent;
+          box.dataset.value = opt.dataset.value;
+          list.hidden = true;
+          box.setAttribute('aria-expanded', 'false');
+        });
+      })();
+
+      // --- Autocomplete combobox ("Ort"): suggestions appear while typing -----------------
+      (function () {
+        const input = document.getElementById('ort');
+        const list = document.getElementById('ort-list');
+        const places = ['Zürich', 'Bern', 'Basel', 'Luzern', 'Lugano'];
+        input.addEventListener('input', function () {
+          const q = input.value.trim().toLowerCase();
+          const hits = q ? places.filter((p) => p.toLowerCase().startsWith(q)) : [];
+          list.innerHTML = hits.map((p) => '<li role="option">' + p + '</li>').join('');
+          list.hidden = hits.length === 0;
+          input.setAttribute('aria-expanded', String(hits.length > 0));
+        });
+        list.addEventListener('click', function (e) {
+          const opt = e.target.closest('[role="option"]');
+          if (!opt) return;
+          input.value = opt.textContent;
+          input.dataset.selected = opt.textContent;
+          list.hidden = true;
+          input.setAttribute('aria-expanded', 'false');
+        });
+      })();
+
+      // --- Submit handler ---------------------------------------------------------------
+      window.__submitted = 0;
+      document.getElementById('contact').addEventListener('submit', function (e) {
+        e.preventDefault();
+        window.__submitted += 1;
+        document.getElementById('submitted').textContent = 'Gesendet';
+      });
+    </script>
+  </body>
+</html>

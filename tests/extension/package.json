@@ -1,0 +1,16 @@
+{
+  "name": "kairo-extension-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Automated tests for the Kairo Browser Bridge extension (content agent + end-to-end native messaging).",
+  "type": "commonjs",
+  "scripts": {
+    "test": "node --test --test-concurrency=1 content.test.cjs popup.test.cjs extension.e2e.test.cjs",
+    "test:content": "node --test content.test.cjs",
+    "test:e2e": "node --test extension.e2e.test.cjs",
+    "lint": "node --check ../../extension/background.js && node --check ../../extension/content.js && node --check ../../extension/popup.js && node --check helpers.cjs && node --check stub-host.cjs && node --check content.test.cjs && node --check popup.test.cjs && node --check extension.e2e.test.cjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

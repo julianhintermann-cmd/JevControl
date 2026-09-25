@@ -1,0 +1,30 @@
+# Build output
+bin/
+obj/
+artifacts/
+publish/
+*.user
+*.suo
+.vs/
+.vscode/
+*.binlog
+TestResults/
+
+# Installer output
+installer/**/bin/
+installer/**/obj/
+*.msi
+*.wixpdb
+
+# Node
+node_modules/
+extension-tests/test-results/
+tests/extension/test-results/
+tests/extension/playwright-report/
+
+# Secrets (never commit)
+*.pfx
+*.key
+*.pem
+!extension/**/*.pub.pem
+.env

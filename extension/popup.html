@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Kairo Browser Bridge</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="panel">
+      <header class="header">
+        <img class="logo" src="icons/icon48.png" alt="" width="32" height="32" />
+        <div class="brand">
+          <h1>Kairo</h1>
+          <p>Browser Bridge</p>
+        </div>
+      </header>
+
+      <section class="status" id="status" data-state="pending" aria-live="polite">
+        <span class="dot" aria-hidden="true"></span>
+        <div class="status-text">
+          <p class="status-title" id="status-title">Status wird geladen …</p>
+          <p class="status-detail" id="status-detail"></p>
+        </div>
+      </section>
+
+      <dl class="facts">
+        <div class="fact">
+          <dt>Browser</dt>
+          <dd id="browser">–</dd>
+        </div>
+        <div class="fact">
+          <dt>Letzte Aktivität</dt>
+          <dd id="last-activity">–</dd>
+        </div>
+        <div class="fact">
+          <dt>Version</dt>
+          <dd id="version">–</dd>
+        </div>
+      </dl>
+
+      <button class="button" id="reconnect" type="button">Erneut verbinden</button>
+
+      <p class="note">
+        Kairo liest und bedient Webseiten nur auf Anweisung der Desktop-App. Seiteninhalte
+        werden als Daten behandelt, nie als Befehle.
+      </p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>
