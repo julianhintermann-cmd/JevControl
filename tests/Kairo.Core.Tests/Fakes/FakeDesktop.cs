@@ -35,6 +35,8 @@ public sealed class FakeDesktop : IPerceptionProvider, IActionExecutor, IWindowS
     public TimeSpan ActionDelay { get; set; } = TimeSpan.Zero;
     /// <summary>SetValue on these labels silently does nothing unless input simulation is used (tests correction).</summary>
     public HashSet<string> IgnoreStructuredSetValue { get; } = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>Fields that report success for set_value but never take the value (not even with simulated input).</summary>
+    public HashSet<string> RejectValues { get; } = new(StringComparer.OrdinalIgnoreCase);
     public Func<AgentAction, ActionResult>? SystemActionHandler { get; set; }
 
     public Field Get(string name) => Fields.First(f => f.Name == name);
@@ -126,6 +128,7 @@ public sealed class FakeDesktop : IPerceptionProvider, IActionExecutor, IWindowS
             switch (action.Kind)
             {
                 case ActionKind.SetValue:
+                    if (RejectValues.Contains(f.Name)) { return ActionResult.Ok("", "ValuePattern"); }
                     if (IgnoreStructuredSetValue.Contains(f.Name) && !context.PreferInputSimulation) { return ActionResult.Ok("", "ValuePattern"); }
                     f.Value = action.Value;
                     return ActionResult.Ok("", context.PreferInputSimulation ? "SendInput" : "ValuePattern");

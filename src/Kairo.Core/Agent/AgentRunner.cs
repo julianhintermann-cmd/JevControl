@@ -507,6 +507,7 @@ public sealed class AgentRunner
         var resolved = await ResolveAsync(run, group).ConfigureAwait(false);
         var scrolled = false;
         var executed = new List<ResolvedStep>();
+        var verifiedCount = 0;
         var pendingBatch = new List<ResolvedStep>();
 
         for (var k = 0; k < resolved.Count; k++)
@@ -535,6 +536,17 @@ public sealed class AgentRunner
                 run.Task.AddLog(TaskLogKind.Decision, $"Nicht zugeordnet: {r.Action.Description} – {r.Problem}", false);
                 run.NeedReplan = true;
                 break;
+            }
+
+            if (r.Action.Kind is not (ActionKind.SetValue or ActionKind.SetChecked or ActionKind.SelectOption))
+            {
+                // A click can submit, navigate or open something: first make sure every value entered so far
+                // is really there (and correct it if not). The user approves a verified form, and nothing is
+                // submitted with wrong data – after a submit the fields could no longer be checked.
+                await FlushBatchAsync(run, pendingBatch, executed).ConfigureAwait(false);
+                await VerifyAndCorrectAsync(run, executed.Skip(verifiedCount).ToList()).ConfigureAwait(false);
+                verifiedCount = executed.Count;
+                if (run.StopMessage is not null || run.NeedReplan) { break; }
             }
 
             if (!await AuthorizeAsync(run, r.Action, r.Element).ConfigureAwait(false))
@@ -577,7 +589,7 @@ public sealed class AgentRunner
         }
 
         await FlushBatchAsync(run, pendingBatch, executed).ConfigureAwait(false);
-        await VerifyAndCorrectAsync(run, executed).ConfigureAwait(false);
+        await VerifyAndCorrectAsync(run, executed.Skip(verifiedCount).ToList()).ConfigureAwait(false);
     }
 
     private async Task<IReadOnlyList<ResolvedStep>> ResolveAsync(RunState run, IReadOnlyList<AgentAction> steps)

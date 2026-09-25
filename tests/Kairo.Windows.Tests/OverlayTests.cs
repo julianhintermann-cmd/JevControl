@@ -36,6 +36,7 @@ public class OverlayTests
             var vm = new OverlayViewModel();
             var overlay = new OverlayWindow(vm, theme, () => settings);
             overlay.Prepare();
+            overlay.WarmUp(); // like App.OnStartup
             var windows = new WindowService(KairoLogger.Null) { IncludeOwnWindows = true };
             var diagnostics = new List<string>();
             overlay.Deactivated += (_, _) =>
@@ -133,6 +134,7 @@ public class OverlayTests
         Assert.Equal("a\nb", result.typed?.Replace("\r\n", "\n"));
         Assert.True(result.hiddenAfterEsc, "ESC did not close the overlay. " + result.Diagnostics);
         Assert.True(result.reopenMs is not null && result.reopened, "The hotkey did not reopen the overlay. " + result.Diagnostics);
-        Assert.True(result.openMs < 1000, $"Overlay took {result.openMs:0} ms to open.");
+        // Measured from the simulated key press (SendInput → WM_HOTKEY → dispatcher → visible window).
+        Assert.True(result.openMs < 300, $"Overlay took {result.openMs:0} ms to open.");
     }
 }

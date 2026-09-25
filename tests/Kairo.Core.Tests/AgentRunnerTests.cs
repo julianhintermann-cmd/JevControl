@@ -61,9 +61,12 @@ public sealed partial class AgentHarness
     public TaskManager Manager { get; }
     public ComputerControlSwitch Switch { get; } = new();
 
+    public AgentTask? LastTask { get; private set; }
+
     public async Task<AgentTask> RunAsync(string instruction)
     {
         var task = new AgentTask(instruction, Desktop.Window);
+        LastTask = task;
         await Runner.RunAsync(task, CancellationToken.None);
         return task;
     }
@@ -249,6 +252,63 @@ public class AgentRunnerTests
         Assert.Equal(2, desktop.Executed.Count(e => e.Action.Kind == ActionKind.SetValue));
         Assert.Contains(task.Log, l => l.Text.StartsWith("Korrektur"));
         Assert.Single(harness.Chat.Requests); // corrected locally – no re-planning needed
+    }
+
+    [Fact]
+    public async Task Values_are_verified_before_the_submit_approval()
+    {
+        using var dir = new TempDir();
+        var desktop = FakeDesktop.ContactForm();
+        const string checkedTrue = "\"checked\":true";
+        var harness = new AgentHarness(desktop, (req, _) =>
+        {
+            var text = FakeChatModel.LastUserText(req);
+            return $$"""
+                {"status":"…","steps":[
+                  {{AgentHarness.Step("set_value", AgentHarness.IdOf(text, "Vorname"), "Vorname", "Max")}},
+                  {{AgentHarness.Step("set_checked", AgentHarness.IdOf(text, "Ich akzeptiere die Datenschutzerklärung"), "Datenschutz", extra: checkedTrue)}},
+                  {{AgentHarness.Step("click", AgentHarness.IdOf(text, "Absenden"), "Absenden")}}],
+                 "after_steps":"verify_and_finish","final_message":"ok"}
+                """;
+        }, dir.Path);
+        (string? Name, bool? Checked, bool Verified)? atApproval = null;
+        harness.Interaction.OnApproval = () => atApproval = (
+            desktop.Get("Vorname").Value,
+            desktop.Get("Ich akzeptiere die Datenschutzerklärung").Checked,
+            harness.LastTask!.Log.Any(l => l.Kind == TaskLogKind.Verification && l.Text.StartsWith("2 von 2", StringComparison.Ordinal)));
+
+        var task = await harness.RunAsync("Fülle das Formular aus und sende es ab");
+
+        Assert.True(desktop.Submitted);
+        // The user approves a completely filled and verified form.
+        Assert.Equal(("Max", (bool?)true, true), atApproval);
+        Assert.Equal(AgentTaskState.Completed, task.State);
+    }
+
+    [Fact]
+    public async Task A_form_is_never_submitted_when_a_value_cannot_be_verified()
+    {
+        using var dir = new TempDir();
+        var desktop = FakeDesktop.ContactForm();
+        desktop.RejectValues.Add("E-Mail");
+        var harness = new AgentHarness(desktop, (req, _) =>
+        {
+            var text = FakeChatModel.LastUserText(req);
+            return $$"""
+                {"status":"…","steps":[
+                  {{AgentHarness.Step("set_value", AgentHarness.IdOf(text, "E-Mail"), "E-Mail", "max@example.ch")}},
+                  {{AgentHarness.Step("click", AgentHarness.IdOf(text, "Absenden"), "Absenden")}}],
+                 "after_steps":"verify_and_finish","final_message":"ok"}
+                """;
+        }, dir.Path);
+
+        var task = await harness.RunAsync("Trage max@example.ch ein und sende das Formular ab");
+
+        Assert.False(desktop.Submitted);
+        Assert.Empty(harness.Interaction.Approvals);
+        Assert.DoesNotContain(desktop.Executed, e => e.Action.Kind == ActionKind.Click);
+        Assert.Contains(task.Log, l => l.Kind == TaskLogKind.Verification && l.Success == false);
+        Assert.True(harness.Chat.Requests.Count >= 2, "the planner is asked again with the verification problem");
     }
 
     [Fact]

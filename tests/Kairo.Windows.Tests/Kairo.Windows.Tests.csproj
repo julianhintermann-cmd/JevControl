@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Kairo.Windows\Kairo.Windows.csproj" />
+    <ProjectReference Include="..\..\src\Kairo.BrowserHost\Kairo.BrowserHost.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\..\src\Kairo.App\Kairo.App.csproj" />
     <ProjectReference Include="..\Kairo.TestTargetApp\Kairo.TestTargetApp.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>

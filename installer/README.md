@@ -171,12 +171,21 @@ und danach `build.ps1 -SkipPublish` ausführen.
 .\installer\test-install.ps1 -Msi artifacts\installer\Kairo-1.2.3-x64.msi
 ```
 
-Installiert still mit `INSTALLDESKTOPSHORTCUT=1 AUTOSTART=1`, prüft Dateien, Verknüpfungen,
-Autostart, beide Native-Messaging-Registrierungen (Manifest vorhanden, `path` zeigt auf eine vorhandene
-EXE, Erweiterungs-ID erlaubt), führt `Kairo.exe --selftest --selftest-out selftest.json` aus
-(Exit-Code 0 erwartet), deinstalliert still mit `REMOVEUSERDATA=1` und prüft, dass alles entfernt
-wurde. Protokolle (`install.log`, `uninstall.log`, `selftest.json`) liegen in
-`artifacts\test-install`. Exit-Code ≠ 0 bei einem Fehler; dann wird das Ende der msiexec-Protokolle
+Der Test läuft so ab:
+1. Installiert still mit `INSTALLDESKTOPSHORTCUT=1 AUTOSTART=1`.
+2. Prüft Dateien, Verknüpfungen, Autostart und beide Native-Messaging-Registrierungen: Manifest vorhanden,
+   `path` zeigt auf eine vorhandene EXE, Erweiterungs-ID erlaubt.
+3. Führt `Kairo.exe --selftest --selftest-out selftest.json` aus und erwartet Exit-Code 0.
+4. Legt Benutzerdaten an und deinstalliert still **ohne** `REMOVEUSERDATA`. Die Daten müssen erhalten bleiben.
+5. Installiert erneut. Die Daten sind noch da.
+6. Deinstalliert still **mit** `REMOVEUSERDATA=1` und prüft, dass alles entfernt wurde, auch
+   `%APPDATA%\Kairo` und `%LOCALAPPDATA%\Kairo`.
+
+Außerhalb der CI verweigert das Skript den Lauf, wenn bereits Kairo-Benutzerdaten existieren. Der letzte
+Schritt würde sie löschen; mit `-AllowUserDataRemoval` läuft es trotzdem.
+
+Die Protokolle (`install.log`, `uninstall-keep.log`, `reinstall.log`, `uninstall.log`, `selftest.json`) liegen in
+`artifacts\test-install`. Bei einem Fehler ist der Exit-Code ≠ 0, und das Ende der msiexec-Protokolle wird
 ausgegeben.
 
 ## Technische Hinweise

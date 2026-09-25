@@ -118,6 +118,7 @@ public partial class App : Application, IAppHost
 
         _overlay = new OverlayWindow(_overlayVm, _theme, () => Runtime.Settings.Current);
         _overlay.Prepare();
+        Dispatcher.BeginInvoke(() => _overlay?.WarmUp(), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
         _overlayVm.SettingsRequested += (_, _) => ShowSettings();
 
         _hotkeys = new GlobalHotkeyManager(_runtime.Log);

@@ -156,13 +156,18 @@ public sealed class BrowserBridgeServer : IAsyncDisposable
         _acceptLoop ??= Task.Run(() => AcceptLoopAsync(_cts.Token));
     }
 
+    /// <summary>
+    /// The pipe's ACL allows only the current user (this replaces PipeOptions.CurrentUserOnly, which .NET does not
+    /// allow together with an explicit PipeSecurity). The client additionally has to be Kairo.BrowserHost.exe.
+    /// </summary>
     private NamedPipeServerStream CreatePipe()
     {
         var security = new PipeSecurity();
         var user = WindowsIdentity.GetCurrent().User!;
+        security.SetOwner(user);
         security.AddAccessRule(new PipeAccessRule(user, PipeAccessRights.ReadWrite | PipeAccessRights.CreateNewInstance, AccessControlType.Allow));
         return NamedPipeServerStreamAcl.Create(_pipeName, PipeDirection.InOut, NamedPipeServerStream.MaxAllowedServerInstances,
-            PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly, 64 * 1024, 64 * 1024, security);
+            PipeTransmissionMode.Byte, PipeOptions.Asynchronous, 64 * 1024, 64 * 1024, security);
     }
 
     private async Task AcceptLoopAsync(CancellationToken cancellationToken)
@@ -175,7 +180,7 @@ public sealed class BrowserBridgeServer : IAsyncDisposable
             {
                 pipe = CreatePipe();
             }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _log.Error("bridge", "pipe creation failed", ex);
                 await Task.Delay(2000, cancellationToken).ConfigureAwait(false);

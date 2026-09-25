@@ -68,6 +68,31 @@ public partial class OverlayWindow : Window
         new WindowInteropHelper(this).EnsureHandle();
     }
 
+    /// <summary>
+    /// Renders the overlay once off-screen, invisible and without activation. The first real display otherwise
+    /// pays for template loading, layout and JIT (measured ~1 s on a cold start); afterwards it opens in a few ms.
+    /// </summary>
+    public void WarmUp()
+    {
+        if (IsVisible) { return; }
+        var showActivated = ShowActivated;
+        try
+        {
+            ShowActivated = false;
+            Opacity = 0;
+            Left = -32000;
+            Top = -32000;
+            Show();
+            UpdateLayout();
+            Hide();
+        }
+        finally
+        {
+            ShowActivated = showActivated;
+            Opacity = 1;
+        }
+    }
+
     // ------------------------------------------------------------------ show / hide
     public void ShowForInput(nint anchorWindow)
     {
