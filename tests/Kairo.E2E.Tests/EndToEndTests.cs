@@ -233,6 +233,7 @@ public sealed class BrowserFormTests : IDisposable
             _output.WriteLine(E2E.DescribeLog(task));
 
             Assert.Equal(AgentTaskState.Completed, task.State);
+            Assert.DoesNotContain(task.Log, l => l.Kind == TaskLogKind.Verification && l.Success == false);
             Assert.Contains(interaction.Requests, r => r.Risk >= RiskLevel.Sensitive);
             var winner = await Task.WhenAny(_server.Submission.Task, Task.Delay(TimeSpan.FromSeconds(20)));
             Assert.True(winner == _server.Submission.Task, "the browser did not submit the form");
@@ -284,6 +285,9 @@ public sealed class BrowserFormTests : IDisposable
             _output.WriteLine(E2E.DescribeLog(task));
             Assert.Equal(AgentTaskState.Completed, task.State);
             Assert.Contains(task.Log, l => l.Text.Contains("Browser-DOM", StringComparison.Ordinal));
+            // Every value is confirmed on the first read-back – no corrections, no false alarms.
+            Assert.DoesNotContain(task.Log, l => l.Kind == TaskLogKind.Verification && l.Success == false);
+            Assert.DoesNotContain(task.Log, l => l.Text.StartsWith("Korrektur", StringComparison.Ordinal));
 
             var snapshot = await runtime.Perception.GetSnapshotAsync(window, forceRefresh: true, CancellationToken.None);
             Assert.Equal(PerceptionSource.BrowserDom, snapshot!.Source);

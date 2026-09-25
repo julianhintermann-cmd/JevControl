@@ -217,7 +217,8 @@ public sealed class BrowserPerceptionProvider : IPerceptionProvider
                 var v = response?["values"]?[ParseLocator(e.Locator).Kid];
                 result[e.Locator] = v is null || v["exists"]?.GetValue<bool>() != true
                     ? new ElementState(false)
-                    : new ElementState(true, v["value"]?.ToString(), v["checked"] is JsonValue c && c.TryGetValue<bool>(out var b) ? b : null, v["value"]?.ToString());
+                    : new ElementState(true, v["value"]?.ToString(), v["checked"] is JsonValue c && c.TryGetValue<bool>(out var b) ? b : null,
+                        v["selectedText"]?.ToString() is { Length: > 0 } text ? text : v["value"]?.ToString());
             }
         }
         return result;

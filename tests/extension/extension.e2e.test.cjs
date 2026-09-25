@@ -299,7 +299,7 @@ describe('extension end-to-end (native messaging)', () => {
     );
     const { values } = await desktop.call('readValues', { tabId: formTabId, kids: [...kids, '0:k77777', 'nope'] });
     assert.deepEqual(values[kids[0]], { exists: true, value: 'Anna', checked: null });
-    assert.deepEqual(values[kids[1]], { exists: true, value: 'DE', checked: null });
+    assert.deepEqual(values[kids[1]], { exists: true, value: 'DE', checked: null, selectedText: 'Deutschland' });
     assert.deepEqual(values[kids[2]], { exists: true, value: '••••', checked: null });
     assert.deepEqual(values[kids[3]], { exists: true, value: 'SOMMER2026', checked: null });
     assert.deepEqual(values[kids[4]], { exists: true, value: 'on', checked: false });

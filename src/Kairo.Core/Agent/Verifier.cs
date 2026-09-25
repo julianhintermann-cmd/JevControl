@@ -75,7 +75,10 @@ public sealed class Verifier
                 {
                     var wanted = step.Action.Option ?? step.Action.Value ?? "";
                     var observed = state.SelectedOption ?? state.Value;
-                    var ok = ValuesMatch(wanted, observed) || (observed?.Contains(wanted, StringComparison.OrdinalIgnoreCase) ?? false);
+                    // The option may be named by its label ("Schweiz") or by its value ("CH").
+                    static bool Matches(string wanted, string? seen) =>
+                        ValuesMatch(wanted, seen) || (seen?.Contains(wanted, StringComparison.OrdinalIgnoreCase) ?? false);
+                    var ok = Matches(wanted, state.SelectedOption) || Matches(wanted, state.Value);
                     results.Add(new StepVerification(step, ok, observed, ok ? null : $"In „{step.Element.DisplayLabel}“ ist nicht „{wanted}“ ausgewählt."));
                     break;
                 }

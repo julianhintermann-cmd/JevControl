@@ -140,35 +140,37 @@ Alle Ebenen laufen in GitHub Actions auf `ubuntu-latest` und `windows-latest`
 Die Prüfung erfolgt automatisiert in GitHub Actions: `ubuntu-latest` und `windows-latest` (Windows Server
 2025 mit interaktiver Desktop-Sitzung).
 
-**Automatisiert verifiziert**
+**Automatisiert verifiziert** (letzter vollständig grüner Lauf: CI #8)
 - Build aller Projekte; 100 Unit-Tests (Agent-Schleife, Jev-/OpenRouter-Protokoll, Planer, Sicherheit,
   Datei-Leser).
 - Browser-Erweiterung: 43 Tests in echtem Chromium, inklusive Native Messaging.
-- Windows-Integration mit echten Fenstern und echter Eingabe:
+- Windows-Integration (25 Tests) mit echten Fenstern und echter Eingabe:
   - DPAPI-Speicherung des Schlüssels,
   - globaler Hotkey inklusive Konflikterkennung,
-  - Overlay über echten Tastendruck Strg+Alt+K (Fokus, Enter, Umschalt+Enter, Esc),
+  - Overlay über echten Tastendruck Strg+Alt+K: sichtbar und fokussiert rund 10 ms nach dem Hotkey; Enter,
+    Umschalt+Enter und Esc funktionieren,
   - UI Automation (Lesen, Ausfüllen, Auswählen, Ankreuzen, Absenden),
   - SendInput-Korrektur,
   - Windows Graphics Capture mit Maskierung,
-  - Zwischenablage und App-Start.
-- End-to-End am nativen Testformular:
-  - Ausfüllen aus einer PDF,
-  - Freigabe vor dem Absenden, abgelehntes Absenden wird nicht ausgeführt,
-  - Abbruch während der Planung und während des Tippens.
+  - Zwischenablage und App-Start,
+  - Native-Messaging-Relay mit dem echten `Kairo.BrowserHost.exe`.
+- End-to-End (7 Tests). Hier ersetzen ein skriptgesteuerter Planer und ein lexikalisches
+  Entscheidungsmodell im Jev-Format die KI-Modelle. Wahrnehmung, Zielauflösung, Freigaben, Ausführung,
+  Verifikation und Abbruch sind Produktionscode.
+  - **Natives Testformular:** Ausfüllen aus einer PDF; Freigabe vor dem Absenden; abgelehntes Absenden wird
+    nicht ausgeführt; Abbruch während der Planung und während des Tippens.
+  - **Microsoft Edge über UI Automation:** Webformular aus einer PDF ausgefüllt, alle 8 Eingaben bestätigt,
+    Freigabe, Absenden. Der lokale Server prüft die per POST empfangenen Werte.
+  - **Microsoft Edge mit der echten Kairo-Erweiterung (DOM-Pfad):** Webformular aus einer PDF ausgefüllt,
+    Werte per DOM zurückgelesen.
 - Alle Oberflächen hell und dunkel auf Windows gerendert, siehe [docs/screenshots](docs/screenshots).
 - Installer:
-  - Das MSI (WiX v5, x64, pro Benutzer, self-contained) wird gebaut.
+  - Das MSI (WiX v5, x64, pro Benutzer, self-contained, ca. 77 MB) wird gebaut.
   - Die stille Installation wird geprüft: Dateien, Startmenü- und Desktopverknüpfung, Autostart,
     Native-Messaging-Registrierung.
   - `Kairo.exe --selftest` läuft aus der Installation.
   - Deinstallation mit Behalten der Daten, Neuinstallation und Deinstallation mit sicherem Löschen der Daten
     sind erfolgreich (`installer/test-install.ps1`).
-
-**In Arbeit (erste Windows-Läufe nach Korrekturen)**
-- Edge-End-to-End-Tests: über UI Automation und über die Erweiterung.
-- Native-Messaging-Relay mit dem echten `Kairo.BrowserHost.exe`.
-- Öffnungszeit des Overlays (Ziel: < 150 ms vom Hotkey bis zum fokussierten Eingabefeld).
 
 **Nicht verifiziert bzw. bewusst offen**
 - **Live-Aufrufe an OpenRouter und Jev** wurden nicht ausgeführt, weil in der Entwicklungsumgebung kein

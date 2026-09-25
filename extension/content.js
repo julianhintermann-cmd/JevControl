@@ -1504,6 +1504,10 @@
       } else {
         const s = readState(el);
         values[kid] = { exists: true, value: s.value, checked: s.checked };
+        if (tagOf(el) === 'select') {
+          // The option's label ("Schweiz") next to its value ("CH"): the agent selects options by label.
+          values[kid].selectedText = Array.from(el.selectedOptions || []).map((o) => clean(o.textContent)).join(', ');
+        }
       }
     }
     return { values };

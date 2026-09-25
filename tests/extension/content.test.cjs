@@ -556,7 +556,7 @@ describe('content agent: actions', () => {
     assert.deepEqual(r.result.values, {
       [vorname]: { exists: true, value: 'Beat', checked: null },
       [nl]: { exists: true, value: 'on', checked: true },
-      [land]: { exists: true, value: 'AT', checked: null },
+      [land]: { exists: true, value: 'AT', checked: null, selectedText: 'Österreich' },
       k424242: { exists: false, value: null, checked: null },
     });
     await page.close();
