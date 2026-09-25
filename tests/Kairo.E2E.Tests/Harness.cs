@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Net;
+using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
 using Kairo.Core.Abstractions;
@@ -354,5 +355,156 @@ public sealed class LocalFormServer : IDisposable
     {
         _cts.Cancel();
         _listener.Close();
+    }
+}
+
+/// <summary>
+/// Firefox driven through geckodriver's WebDriver HTTP API (no Selenium dependency): a clean temporary profile
+/// with the Kairo add-on installed as temporary add-on – the automated equivalent of about:debugging →
+/// "Load Temporary Add-on", which is also how Zen users load an unsigned build.
+/// </summary>
+public sealed class FirefoxSession : IAsyncDisposable
+{
+    private readonly Process _driver;
+    private readonly HttpClient _http;
+    private readonly string _sessionId;
+
+    private FirefoxSession(Process driver, HttpClient http, string sessionId, string version)
+    {
+        _driver = driver;
+        _http = http;
+        _sessionId = sessionId;
+        Version = version;
+    }
+
+    public string Version { get; }
+
+    public static string? FindFirefox()
+    {
+        foreach (var hive in new[] { Registry.CurrentUser, Registry.LocalMachine })
+        {
+            using var key = hive.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\App Paths\firefox.exe");
+            if (key?.GetValue(null) is string path && File.Exists(path.Trim('"'))) { return path.Trim('"'); }
+        }
+        var candidates = new[]
+        {
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), @"Mozilla Firefox\firefox.exe"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), @"Mozilla Firefox\firefox.exe"),
+        };
+        return candidates.FirstOrDefault(File.Exists);
+    }
+
+    /// <summary>GitHub's Windows images set GECKOWEBDRIVER to the folder of geckodriver.exe; otherwise PATH.</summary>
+    public static string? FindGeckodriver()
+    {
+        var folders = new List<string>();
+        if (Environment.GetEnvironmentVariable("GECKOWEBDRIVER") is { Length: > 0 } dir) { folders.Add(dir); }
+        folders.AddRange((Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries));
+        return folders.Select(f => Path.Combine(f.Trim('"'), "geckodriver.exe")).FirstOrDefault(File.Exists);
+    }
+
+    /// <summary>Packs the extension folder like build.ps1 does: manifest.json at the root, forward slashes.</summary>
+    public static string PackExtension(string extensionDir, string xpiPath)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(xpiPath)!);
+        if (File.Exists(xpiPath)) { File.Delete(xpiPath); }
+        using var zip = System.IO.Compression.ZipFile.Open(xpiPath, System.IO.Compression.ZipArchiveMode.Create);
+        foreach (var file in Directory.EnumerateFiles(extensionDir, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
+        {
+            var relative = Path.GetRelativePath(extensionDir, file).Replace('\\', '/');
+            if (relative.StartsWith("tools/", StringComparison.Ordinal)) { continue; }
+            System.IO.Compression.ZipFileExtensions.CreateEntryFromFile(zip, file, relative);
+        }
+        return xpiPath;
+    }
+
+    public static async Task<FirefoxSession> StartAsync(string geckodriver, string firefox)
+    {
+        var listener = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        listener.Stop();
+
+        var driver = Process.Start(new ProcessStartInfo(geckodriver, $"--port {port} --log warn")
+        {
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        })!;
+        driver.OutputDataReceived += (_, _) => { };
+        driver.ErrorDataReceived += (_, _) => { };
+        driver.BeginOutputReadLine();
+        driver.BeginErrorReadLine();
+
+        var http = new HttpClient(new HttpClientHandler { UseProxy = false }) { BaseAddress = new Uri($"http://127.0.0.1:{port}/"), Timeout = TimeSpan.FromSeconds(90) };
+        try
+        {
+            var ready = false;
+            for (var i = 0; i < 100 && !ready; i++)
+            {
+                try { ready = (await http.GetAsync("status")).IsSuccessStatusCode; }
+                catch (HttpRequestException) { await Task.Delay(200); }
+            }
+            if (!ready) { throw new InvalidOperationException("geckodriver did not start."); }
+
+            var capabilities = new System.Text.Json.Nodes.JsonObject
+            {
+                ["capabilities"] = new System.Text.Json.Nodes.JsonObject
+                {
+                    ["alwaysMatch"] = new System.Text.Json.Nodes.JsonObject
+                    {
+                        ["browserName"] = "firefox",
+                        ["moz:firefoxOptions"] = new System.Text.Json.Nodes.JsonObject
+                        {
+                            ["binary"] = firefox,
+                            ["prefs"] = new System.Text.Json.Nodes.JsonObject
+                            {
+                                // Grant the add-on's host permissions on install (default in current Firefox).
+                                ["extensions.originControls.grantByDefault"] = true,
+                                ["browser.shell.checkDefaultBrowser"] = false,
+                                ["datareporting.policy.dataSubmissionEnabled"] = false,
+                            },
+                        },
+                    },
+                },
+            };
+            var session = await PostAsync(http, "session", capabilities);
+            var sessionId = session?["sessionId"]?.ToString() ?? throw new InvalidOperationException($"No WebDriver session: {session}");
+            var version = session?["capabilities"]?["browserVersion"]?.ToString() ?? "?";
+            return new FirefoxSession(driver, http, sessionId, version);
+        }
+        catch
+        {
+            http.Dispose();
+            Kairo.Tests.Shared.TestSupport.Kill(driver);
+            throw;
+        }
+    }
+
+    /// <summary>Installs the XPI as temporary add-on; returns the add-on id Firefox assigned.</summary>
+    public async Task<string> InstallTemporaryAddonAsync(string xpiPath) =>
+        (await PostAsync(_http, $"session/{_sessionId}/moz/addon/install", new System.Text.Json.Nodes.JsonObject { ["path"] = xpiPath, ["temporary"] = true }))?.ToString() ?? "";
+
+    public Task NavigateAsync(string url) => PostAsync(_http, $"session/{_sessionId}/url", new System.Text.Json.Nodes.JsonObject { ["url"] = url });
+
+    private static async Task<System.Text.Json.Nodes.JsonNode?> PostAsync(HttpClient http, string path, System.Text.Json.Nodes.JsonObject body)
+    {
+        using var response = await http.PostAsync(path, new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json"));
+        var text = await response.Content.ReadAsStringAsync();
+        if (!response.IsSuccessStatusCode) { throw new InvalidOperationException($"WebDriver {path} failed ({(int)response.StatusCode}): {text}"); }
+        return System.Text.Json.Nodes.JsonNode.Parse(text)?["value"];
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+            await _http.DeleteAsync($"session/{_sessionId}", cts.Token);
+        }
+        catch (Exception) { }
+        _http.Dispose();
+        Kairo.Tests.Shared.TestSupport.Kill(_driver);
     }
 }

@@ -229,7 +229,7 @@ public sealed class AgentRunner
         {
             BrowserKind.Chrome => "Chrome",
             BrowserKind.Edge => "Edge",
-            BrowserKind.Firefox => "Firefox",
+            BrowserKind.Firefox => window.AppName,
             _ => string.IsNullOrWhiteSpace(window.ProcessName) ? "Fenster" : window.ProcessName,
         };
 

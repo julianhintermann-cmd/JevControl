@@ -205,6 +205,28 @@ body {
   cursor: default;
 }
 
+.permission {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--surface-border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.permission[hidden] {
+  display: none;
+}
+
+.permission-text {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 16px;
+}
+
 .note {
   margin: 0;
   color: var(--text-secondary);

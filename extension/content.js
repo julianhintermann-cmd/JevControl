@@ -193,6 +193,10 @@
       if (dom && typeof dom.openOrClosedShadowRoot === 'function') {
         return dom.openOrClosedShadowRoot(el) || null;
       }
+      // Firefox content scripts: property instead of chrome.dom.
+      if ('openOrClosedShadowRoot' in el) {
+        return el.openOrClosedShadowRoot || null;
+      }
     } catch (_) {
       // fall through to the open shadow root
     }

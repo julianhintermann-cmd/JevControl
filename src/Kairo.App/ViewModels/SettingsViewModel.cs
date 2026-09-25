@@ -152,7 +152,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         var connections = Runtime.Bridge.Connections;
         BrowserStatus = connections.Count == 0
             ? "Keine Browser-Erweiterung verbunden. Kairo nutzt im Browser Windows UI Automation."
-            : "Verbunden: " + string.Join(", ", connections.Select(c => $"{(c.Browser == "edge" ? "Edge" : c.Browser == "chrome" ? "Chrome" : "Chromium")} (Erweiterung {c.Version})"));
+            : "Verbunden: " + string.Join(", ", connections.Select(c => $"{c.DisplayName} (Erweiterung {c.Version})"));
         var history = Runtime.History;
         var today = history.TotalCost(DateTimeOffset.Now.Date);
         var month = history.TotalCost(DateTimeOffset.Now.AddDays(-30));

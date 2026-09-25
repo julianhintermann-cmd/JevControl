@@ -180,10 +180,16 @@ $desktopLink = Join-Path ([Environment]::GetFolderPath('DesktopDirectory')) 'Kai
 $runKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
 $installerKey = 'HKCU:\Software\Kairo\Installer'
 $nativeHostKeys = [ordered]@{
-    'Chrome' = 'HKCU:\Software\Google\Chrome\NativeMessagingHosts\com.kairo.bridge'
-    'Edge'   = 'HKCU:\Software\Microsoft\Edge\NativeMessagingHosts\com.kairo.bridge'
+    'Chrome'      = 'HKCU:\Software\Google\Chrome\NativeMessagingHosts\com.kairo.bridge'
+    'Edge'        = 'HKCU:\Software\Microsoft\Edge\NativeMessagingHosts\com.kairo.bridge'
+    'Firefox/Zen' = 'HKCU:\Software\Mozilla\NativeMessagingHosts\com.kairo.bridge'
 }
-$extensionOrigin = 'chrome-extension://fjdcafkellelfdkneebdlmoggkhkilmh/'
+# Chromium manifests list allowed extension origins, Gecko manifests (Firefox, Zen, ...) allowed add-on ids.
+$nativeHostAllowList = @{
+    'Chrome'      = @('allowed_origins', 'chrome-extension://fjdcafkellelfdkneebdlmoggkhkilmh/')
+    'Edge'        = @('allowed_origins', 'chrome-extension://fjdcafkellelfdkneebdlmoggkhkilmh/')
+    'Firefox/Zen' = @('allowed_extensions', 'kairo-bridge@jevcontrol')
+}
 
 Write-Host "MSI      : $Msi"
 Write-Host "Logs     : $LogDir"
@@ -224,7 +230,7 @@ Pass "msiexec /i finished (exit code $exitCode)"
 
 # ------------------------------------------------------------------------------------------------ check install
 Write-Section 'Checking the installation'
-foreach ($relative in @('Kairo.exe', 'Kairo.BrowserHost.exe', 'com.kairo.bridge.json', 'Assets\kairo.ico', 'extension\manifest.json')) {
+foreach ($relative in @('Kairo.exe', 'Kairo.BrowserHost.exe', 'com.kairo.bridge.json', 'com.kairo.bridge.firefox.json', 'Assets\kairo.ico', 'extension\manifest.json', 'Kairo-Firefox.xpi')) {
     Assert-True (Test-Path -LiteralPath (Join-Path $installDir $relative) -PathType Leaf) "File installed: $relative"
 }
 Assert-True (-not (Test-Path -LiteralPath (Join-Path $installDir 'extension\tools'))) 'extension\tools is not installed'
@@ -265,10 +271,11 @@ foreach ($browser in $nativeHostKeys.Keys) {
         if ($hostPath -and -not [System.IO.Path]::IsPathRooted($hostPath)) {
             $hostPath = Join-Path (Split-Path -Parent $manifestPath) $hostPath
         }
-        $origins = @($manifest.PSObject.Properties['allowed_origins'] | ForEach-Object { $_.Value })
+        $listName, $allowed = $nativeHostAllowList[$browser]
+        $allowList = @($manifest.PSObject.Properties[$listName] | ForEach-Object { $_.Value })
         Assert-True ([string]($manifest.PSObject.Properties['name'] | ForEach-Object { $_.Value }) -eq 'com.kairo.bridge') "$browser manifest name is com.kairo.bridge"
         Assert-True ($hostPath -and (Test-Path -LiteralPath $hostPath -PathType Leaf)) "$browser manifest path resolves to an existing host exe ($hostPath)"
-        Assert-True ($origins -contains $extensionOrigin) "$browser manifest allows $extensionOrigin"
+        Assert-True ($allowList -contains $allowed) "$browser manifest $listName contains $allowed"
     }
     catch {
         Fail "$browser manifest is valid JSON ($($_.Exception.Message))"

@@ -303,6 +303,70 @@ public sealed class BrowserFormTests : IDisposable
             NativeHostRegistrar.Unregister();
         }
     }
+
+    /// <summary>
+    /// Firefox (the engine of Zen): the add-on as temporary add-on, the host found through the Mozilla registry
+    /// key and started with Gecko's arguments (manifest path + add-on id), the real Kairo agent loop on the DOM.
+    /// </summary>
+    [SkippableFact]
+    public async Task Fills_a_web_form_in_firefox_through_the_extension()
+    {
+        Skip.IfNot(OperatingSystem.IsWindows());
+        var firefox = FirefoxSession.FindFirefox();
+        Skip.If(firefox is null, "Firefox is not installed.");
+        var geckodriver = FirefoxSession.FindGeckodriver();
+        Skip.If(geckodriver is null, "geckodriver is not available.");
+        var hostExe = Directory.EnumerateFiles(Path.Combine(TestSupport.RepoRoot(), "src", "Kairo.BrowserHost", "bin"), "Kairo.BrowserHost.exe", SearchOption.AllDirectories)
+            .OrderByDescending(File.GetLastWriteTimeUtc).FirstOrDefault();
+        Skip.If(hostExe is null, "Kairo.BrowserHost.exe not built.");
+
+        var xpi = FirefoxSession.PackExtension(Path.Combine(TestSupport.RepoRoot(), "extension"), Path.Combine(_root, "Kairo-Firefox.xpi"));
+        var pipe = "kairo-e2e-" + Guid.NewGuid().ToString("N");
+        NativeHostRegistrar.Register(hostExe!, Path.Combine(_root, "host"));
+        Environment.SetEnvironmentVariable("KAIRO_BRIDGE_PIPE", pipe); // inherited by geckodriver → Firefox → native host
+        var pdf = E2E.CreateContactPdf(Path.Combine(_root, "docs"));
+        var interaction = new RecordingInteraction();
+        await using var runtime = E2E.CreateRuntime(interaction, new ScriptedFormPlanner { SubmitWhenAsked = false }, new LexicalDecisionModel(), Path.Combine(_root, "data"), startBridge: true, pipeName: pipe);
+        var connected = new TaskCompletionSource<Kairo.Windows.Browser.BrowserConnection>(TaskCreationOptions.RunContinuationsAsynchronously);
+        runtime.Bridge.Connected += (_, c) => connected.TrySetResult(c);
+
+        await using var session = await FirefoxSession.StartAsync(geckodriver!, firefox!);
+        try
+        {
+            _output.WriteLine($"Firefox {session.Version}");
+            var addonId = await session.InstallTemporaryAddonAsync(xpi);
+            Assert.Equal(NativeHostRegistrar.GeckoExtensionId, addonId);
+            var winner = await Task.WhenAny(connected.Task, Task.Delay(TimeSpan.FromSeconds(40)));
+            Assert.True(winner == connected.Task,
+                $"The add-on did not connect to Kairo through the native host. Bridge log: {string.Join(" | ", runtime.Log.Recent.Where(e => e.Category == "bridge").Select(e => e.Message))}");
+            var connection = await connected.Task;
+            _output.WriteLine($"connected: {connection.DisplayName} {connection.Version}");
+            Assert.Equal(BrowserKind.Firefox, connection.Kind);
+
+            await session.NavigateAsync(_server.Url);
+            var window = await TestSupport.WaitForWindowAsync(w => w.ProcessName.Equals("firefox", StringComparison.OrdinalIgnoreCase) && w.Title.Contains("Kontakt", StringComparison.Ordinal), TimeSpan.FromSeconds(45));
+            Assert.True(runtime.DomProvider.CanHandle(window), "Kairo does not route the Firefox window to the extension.");
+
+            var task = await E2E.RunTaskAsync(runtime, $"Fülle das Kontaktformular aus. Meine Daten stehen in {pdf}.", window, TimeSpan.FromMinutes(2));
+            _output.WriteLine(E2E.DescribeLog(task));
+            Assert.Equal(AgentTaskState.Completed, task.State);
+            Assert.Contains(task.Log, l => l.Text.Contains("Browser-DOM", StringComparison.Ordinal));
+            Assert.DoesNotContain(task.Log, l => l.Kind == TaskLogKind.Verification && l.Success == false);
+            Assert.DoesNotContain(task.Log, l => l.Text.StartsWith("Korrektur", StringComparison.Ordinal));
+
+            var snapshot = await runtime.Perception.GetSnapshotAsync(window, forceRefresh: true, CancellationToken.None);
+            Assert.Equal(PerceptionSource.BrowserDom, snapshot!.Source);
+            Assert.Equal("Max", snapshot.Elements.First(e => e.Name == "Vorname").Value);
+            Assert.Equal("max.muster@example.ch", snapshot.Elements.First(e => e.Name == "E-Mail").Value);
+            Assert.Equal("Schweiz", snapshot.Elements.First(e => e.Name == "Land").Value);
+            Assert.True(snapshot.Elements.First(e => e.Name.StartsWith("Ich akzeptiere", StringComparison.Ordinal)).IsChecked);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("KAIRO_BRIDGE_PIPE", null);
+            NativeHostRegistrar.Unregister();
+        }
+    }
 }
 
 /// <summary>Runs only when OPENROUTER_API_KEY is set: real planner model and real Jev via OpenRouter.</summary>

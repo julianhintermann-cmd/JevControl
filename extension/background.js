@@ -1,5 +1,7 @@
 /*
- * Kairo Browser Bridge – background service worker (Manifest V3, classic script).
+ * Kairo Browser Bridge – background script (Manifest V3, classic script). Chrome/Edge run it as
+ * service worker, Firefox/Zen as event page (manifest "background.scripts"); the code only uses
+ * the chrome.* APIs both engines implement.
  *
  * Connects to the Kairo desktop app through the native messaging host "com.kairo.bridge"
  * (Kairo.BrowserHost.exe, a pure relay), answers `request` messages with `response`
@@ -56,11 +58,16 @@ const NAVIGABLE_PROTOCOLS = new Set(['http:', 'https:', 'file:']);
 const RESTRICTED_PROTOCOLS = new Set([
   'chrome:', 'edge:', 'chrome-extension:', 'extension:', 'chrome-untrusted:', 'chrome-search:',
   'chrome-error:', 'devtools:', 'view-source:', 'about:', 'edge-extension:',
+  'moz-extension:', 'resource:', 'jar:',
 ]);
+/** Store pages (all browsers) and the domains Firefox never lets extensions script. */
 const RESTRICTED_SITES = [
   { host: 'chromewebstore.google.com', path: '/' },
   { host: 'chrome.google.com', path: '/webstore' },
   { host: 'microsoftedge.microsoft.com', path: '/addons' },
+  { host: 'addons.mozilla.org', path: '/' },
+  { host: 'support.mozilla.org', path: '/' },
+  { host: 'accounts.firefox.com', path: '/' },
 ];
 
 // -----------------------------------------------------------------------------------------
@@ -71,6 +78,8 @@ const state = {
   port: null,
   connected: false,
   browser: detectBrowser(),
+  /** Gecko only: product name from runtime.getBrowserInfo() ("Firefox", "Zen", …); lets Kairo tell forks apart. */
+  product: null,
   lastError: null,
   lastRequestAt: null,
   lastConnectAttemptAt: 0,
@@ -84,10 +93,19 @@ class BridgeError extends Error {
   }
 }
 
+/** True in Firefox and its forks (Zen, LibreWolf, Floorp, Waterfox): Gecko exposes `browser`. */
+function isGecko() {
+  return typeof globalThis.browser === 'object' && globalThis.browser !== null &&
+    typeof globalThis.browser.runtime?.getBrowserInfo === 'function';
+}
+
 function detectBrowser() {
   const uaData = self.navigator && self.navigator.userAgentData;
   const brands = ((uaData && uaData.brands) || []).map((b) => String(b.brand));
   const ua = (self.navigator && self.navigator.userAgent) || '';
+  if (isGecko() || /\bFirefox\//.test(ua)) {
+    return 'firefox';
+  }
   if (brands.some((b) => /Microsoft Edge/i.test(b)) || /\bEdg\//.test(ua)) {
     return 'edge';
   }
@@ -121,10 +139,13 @@ function toBridgeError(e, fallbackCode = 'script_error') {
 /** Translates chrome.runtime.lastError messages of the native port into German UI text. */
 function describeDisconnect(message) {
   const m = String(message || '');
-  if (/not found/i.test(m)) {
+  // Chrome: "Specified native messaging host not found." / Firefox: "No such native application …".
+  if (/not found|no such native application/i.test(m)) {
     return 'Native-Messaging-Host nicht gefunden – ist Kairo installiert?';
   }
-  if (/forbidden/i.test(m)) {
+  // Chrome: "Access to the specified native messaging host is forbidden." /
+  // Firefox: "This extension does not have permission to use native application …".
+  if (/forbidden|does not have permission/i.test(m)) {
     return 'Zugriff auf den Kairo-Host verweigert (Erweiterungs-ID nicht freigegeben).';
   }
   if (/exited/i.test(m)) {
@@ -155,7 +176,9 @@ function connect() {
 
   port.onMessage.addListener((msg) => onPortMessage(port, msg));
   port.onDisconnect.addListener((p) => {
-    const err = chrome.runtime.lastError; // must be read to avoid "unchecked lastError"
+    // Chrome reports the reason in runtime.lastError (must be read to avoid "unchecked lastError"),
+    // Firefox in port.error.
+    const err = chrome.runtime.lastError || p.error;
     if (state.port !== p) {
       return;
     }
@@ -163,14 +186,30 @@ function connect() {
     markDisconnected(state.lastError || describeDisconnect(err && err.message));
   });
 
+  sendHello(port);
+  updateActionTitle();
+}
+
+/** Sends `hello` (synchronously in Chromium; Gecko first resolves the product name once). */
+async function sendHello(port) {
+  if (isGecko() && state.product === null) {
+    try {
+      state.product = String((await globalThis.browser.runtime.getBrowserInfo()).name || '');
+    } catch (_) {
+      state.product = '';
+    }
+    if (state.port !== port) {
+      return;
+    }
+  }
   postMessage({
     type: 'hello',
     protocol: PROTOCOL_VERSION,
     extensionVersion: chrome.runtime.getManifest().version,
     browser: state.browser,
+    ...(state.product ? { product: state.product } : {}),
     userAgent: self.navigator.userAgent,
   });
-  updateActionTitle();
 }
 
 function markDisconnected(reason) {
@@ -273,6 +312,7 @@ function publicStatus() {
     lastConnectAttemptAt: state.lastConnectAttemptAt || null,
     extensionVersion: chrome.runtime.getManifest().version,
     extensionId: chrome.runtime.id,
+    product: state.product,
   };
 }
 
@@ -453,6 +493,11 @@ async function resolveScriptableTab(params) {
   return tab;
 }
 
+/** Firefox MV3 treats host permissions as grantable: without them scripting fails with this message. */
+function isMissingHostPermission(msg) {
+  return /missing host permission/i.test(msg);
+}
+
 function isMissingFrameError(msg) {
   return /no frame with id|frame with id \d+ (was removed|not found)|frame .*(removed|not found)/i.test(msg);
 }
@@ -469,6 +514,9 @@ async function injectAgent(tabId, frameIds) {
     }
     if (frameIds && isMissingFrameError(msg)) {
       throw new BridgeError('element_not_found', `Frame no longer exists: ${msg}`);
+    }
+    if (isMissingHostPermission(msg)) {
+      throw new BridgeError('restricted_page', 'No access to websites – allow it in the Kairo extension menu');
     }
     throw new BridgeError('restricted_page', `Cannot access this page: ${msg}`);
   }

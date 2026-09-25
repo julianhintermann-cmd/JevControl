@@ -27,16 +27,29 @@ public sealed class BrowserConnection
     private readonly Stream _stream;
     private long _nextId;
 
-    internal BrowserConnection(Stream stream, string browser, string version)
+    internal BrowserConnection(Stream stream, string browser, string version, string? product = null)
     {
         _stream = stream;
         Browser = browser;
         Version = version;
+        Product = string.IsNullOrWhiteSpace(product) ? null : product;
     }
 
-    /// <summary>"chrome", "edge" or "chromium".</summary>
+    /// <summary>"chrome", "edge", "chromium" or "firefox" (Gecko, including forks such as Zen).</summary>
     public string Browser { get; }
     public string Version { get; }
+
+    /// <summary>Gecko only: product name reported by the browser ("Firefox", "Zen", "LibreWolf", ...).</summary>
+    public string? Product { get; }
+
+    /// <summary>Name shown to the user.</summary>
+    public string DisplayName => Product ?? Browser switch
+    {
+        "edge" => "Edge",
+        "chrome" => "Chrome",
+        "firefox" => "Firefox",
+        _ => "Chromium",
+    };
     public DateTimeOffset ConnectedAt { get; } = DateTimeOffset.Now;
     public bool IsOpen { get; internal set; } = true;
 
@@ -44,8 +57,13 @@ public sealed class BrowserConnection
     {
         "edge" => BrowserKind.Edge,
         "chrome" => BrowserKind.Chrome,
+        "firefox" => BrowserKind.Firefox,
         _ => BrowserKind.OtherChromium,
     };
+
+    /// <summary>True if the reported product is the browser running as <paramref name="processName"/> (zen.exe ↔ "Zen").</summary>
+    internal bool IsProductOf(string processName) =>
+        Product is not null && string.Equals(Product.Replace(" ", "", StringComparison.Ordinal), processName, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Actions on a tab must not interleave – callers use this lock.</summary>
     public SemaphoreSlim ActionLock => _actionLock;
@@ -148,8 +166,21 @@ public sealed class BrowserBridgeServer : IAsyncDisposable
 
     public IReadOnlyList<BrowserConnection> Connections => _connections.Keys.Where(c => c.IsOpen).OrderByDescending(c => c.ConnectedAt).ToList();
 
-    public BrowserConnection? ConnectionFor(BrowserKind kind) =>
-        Connections.FirstOrDefault(c => c.Kind == kind) ?? (kind == BrowserKind.OtherChromium ? Connections.FirstOrDefault() : null);
+    /// <summary>
+    /// The extension connection serving <paramref name="window"/>. With several browsers of the same engine
+    /// connected (e.g. Firefox and Zen), the one whose reported product matches the window's process wins.
+    /// </summary>
+    public BrowserConnection? ConnectionFor(WindowInfo window)
+    {
+        var kind = window.BrowserKind;
+        if (kind == BrowserKind.None) { return null; }
+        var open = Connections;
+        var sameKind = open.Where(c => c.Kind == kind).ToList();
+        return sameKind.FirstOrDefault(c => c.IsProductOf(window.ProcessName))
+            ?? sameKind.FirstOrDefault()
+            // Brave, Vivaldi, ... may report themselves as Chrome: any Chromium connection can serve them.
+            ?? (kind == BrowserKind.OtherChromium ? open.FirstOrDefault(c => c.Kind != BrowserKind.Firefox) : null);
+    }
 
     public void Start()
     {
@@ -246,9 +277,9 @@ public sealed class BrowserBridgeServer : IAsyncDisposable
                 switch (message["type"]?.ToString())
                 {
                     case "hello":
-                        connection = new BrowserConnection(pipe, message["browser"]?.ToString() ?? "chromium", message["extensionVersion"]?.ToString() ?? "?");
+                        connection = new BrowserConnection(pipe, message["browser"]?.ToString() ?? "chromium", message["extensionVersion"]?.ToString() ?? "?", message["product"]?.ToString());
                         _connections[connection] = 0;
-                        _log.Info("bridge", $"browser connected: {connection.Browser} (extension {connection.Version})");
+                        _log.Info("bridge", $"browser connected: {connection.DisplayName} (extension {connection.Version})");
                         Connected?.Invoke(this, connection);
                         break;
                     case "response":
@@ -270,7 +301,7 @@ public sealed class BrowserBridgeServer : IAsyncDisposable
             {
                 connection.FailAll();
                 _connections.TryRemove(connection, out _);
-                _log.Info("bridge", $"browser disconnected: {connection.Browser}");
+                _log.Info("bridge", $"browser disconnected: {connection.DisplayName}");
                 Disconnected?.Invoke(this, connection);
             }
             await pipe.DisposeAsync().ConfigureAwait(false);

@@ -2,8 +2,17 @@
   "manifest_version": 3,
   "name": "Kairo Browser Bridge",
   "version": "1.0.0",
-  "description": "Verbindet Chrome und Edge mit der Kairo-Desktop-App, damit Kairo Webseiten auf deine Anweisung gezielt lesen und bedienen kann.",
-  "minimum_chrome_version": "116",
+  "description": "Verbindet Chrome, Edge, Firefox und Zen mit der Kairo-Desktop-App, damit Kairo Webseiten auf deine Anweisung gezielt lesen und bedienen kann.",
+  "minimum_chrome_version": "121",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "kairo-bridge@jevcontrol",
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": ["websiteContent"]
+      }
+    }
+  },
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAjSTQvf50WXQdaXFR0V3lTQFgE1mOBtOgkXaj8sv2b2PPVuzX1fr9GzAbZOqhSuAJgpWiKcmSeGmggliHfbo5z+x2xskrspNdLBNPVrQjfW4olLaxFjbn0baOHOxc3rqj4rpn2OrEJik4EVAHXQMB7mFjJ6QdVkRN+8h4whIMdeUe/e7/c/oWRURYCUGgs4r9PbeeRVjDncEAlSS7MxleZ9vMQHC23V6TSobd/hj+/LBrNMamt9EYFC/UDLJ+UWeYtdabOYhCbMVpFXh9xLNV2z5RqZ6H6GIx+CUL7XyKtj96LvIpaXTNgIV1OzGYx0NfpZfpEJDgkMzOzqG0BC7jWwIDAQAB",
   "permissions": [
     "nativeMessaging",
@@ -17,7 +26,8 @@
     "<all_urls>"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "scripts": ["background.js"]
   },
   "action": {
     "default_title": "Kairo Browser Bridge",

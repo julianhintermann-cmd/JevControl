@@ -5,7 +5,7 @@
     <TargetFramework>$(WindowsTfm)</TargetFramework>
     <RootNamespace>Kairo.BrowserHost</RootNamespace>
     <AssemblyName>Kairo.BrowserHost</AssemblyName>
-    <Description>Chrome/Edge native messaging host of Kairo: relays messages between the Kairo extension and the Kairo desktop app.</Description>
+    <Description>Native messaging host of Kairo (Chrome, Edge, Firefox, Zen): relays messages between the Kairo extension and the Kairo desktop app.</Description>
     <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
 
@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <None Include="com.kairo.bridge.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="com.kairo.bridge.firefox.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

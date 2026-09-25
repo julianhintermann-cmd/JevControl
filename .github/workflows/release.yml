@@ -2,6 +2,8 @@ name: Release
 
 # Manually started: builds the MSI for the given version, runs the install/uninstall test against exactly this
 # MSI, and publishes it with a SHA-256 checksum as a GitHub release (tag v<version> on the built commit).
+# The Firefox/Zen add-on (XPI) is signed by addons.mozilla.org (unlisted, self-distributed) when the secrets
+# AMO_JWT_ISSUER and AMO_JWT_SECRET are set; otherwise it is attached unsigned (temporary installation only).
 on:
   workflow_dispatch:
     inputs:
@@ -28,6 +30,7 @@ jobs:
     env:
       VERSION: ${{ inputs.version }}
       HAS_SIGNING_CERT: ${{ secrets.CODE_SIGNING_CERT_BASE64 != '' }}
+      HAS_AMO_KEYS: ${{ secrets.AMO_JWT_ISSUER != '' && secrets.AMO_JWT_SECRET != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -49,6 +52,23 @@ jobs:
       - name: Build installer (publish self-contained + WiX MSI)
         shell: pwsh
         run: ./installer/build.ps1 -Configuration Release -Version $env:VERSION
+
+      - name: Sign the Firefox/Zen add-on at addons.mozilla.org (only if AMO API keys are configured)
+        if: env.HAS_AMO_KEYS == 'true'
+        shell: pwsh
+        env:
+          AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+          AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: |
+          $out = Join-Path $env:RUNNER_TEMP 'amo-signed'
+          npx -y web-ext@8 sign --channel unlisted --source-dir artifacts/publish/Kairo/extension --artifacts-dir $out `
+            --api-key $env:AMO_JWT_ISSUER --api-secret $env:AMO_JWT_SECRET --approval-timeout 900000
+          if ($LASTEXITCODE -ne 0) { throw "web-ext sign failed" }
+          $signed = Get-ChildItem $out -Filter *.xpi | Select-Object -First 1
+          if (-not $signed) { throw "addons.mozilla.org returned no signed XPI" }
+          # Rebuild the MSI with the signed add-on (same binaries, same stamped extension).
+          ./installer/build.ps1 -Configuration Release -Version $env:VERSION -SkipPublish -FirefoxXpi $signed.FullName
+          "XPI_SIGNED=true" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
 
       - name: Sign installer (only if a code signing certificate is configured)
         if: env.HAS_SIGNING_CERT == 'true'
@@ -73,9 +93,9 @@ jobs:
       - name: Checksum
         shell: pwsh
         run: |
-          $msi = "artifacts/installer/Kairo-$env:VERSION-x64.msi"
-          $hash = (Get-FileHash -Algorithm SHA256 $msi).Hash.ToLowerInvariant()
-          "$hash  Kairo-$env:VERSION-x64.msi" | Set-Content -Encoding ascii artifacts/installer/SHA256SUMS.txt
+          $files = @("artifacts/installer/Kairo-$env:VERSION-x64.msi", "artifacts/extension/Kairo-Firefox-$env:VERSION.xpi")
+          $lines = foreach ($f in $files) { "$((Get-FileHash -Algorithm SHA256 $f).Hash.ToLowerInvariant())  $(Split-Path -Leaf $f)" }
+          $lines | Set-Content -Encoding ascii artifacts/installer/SHA256SUMS.txt
           Get-Content artifacts/installer/SHA256SUMS.txt
 
       - name: Publish GitHub release
@@ -85,13 +105,23 @@ jobs:
         run: |
           $flags = @()
           if ("${{ inputs.prerelease }}" -eq "true") { $flags += "--prerelease" }
+          # The notes say whether the attached Firefox/Zen add-on is signed.
+          $notes = Join-Path $env:RUNNER_TEMP 'release-notes.md'
+          Copy-Item "docs/releases/$env:VERSION.md" $notes
+          $xpiNote = if ($env:XPI_SIGNED -eq 'true') {
+            "**Firefox/Zen:** ``Kairo-Firefox-$env:VERSION.xpi`` ist von Mozilla signiert und lässt sich dauerhaft installieren (Datei in den Browser ziehen oder *Add-ons → Zahnrad → Add-on aus Datei installieren*)."
+          } else {
+            "**Firefox/Zen:** ``Kairo-Firefox-$env:VERSION.xpi`` ist nicht signiert. Firefox und Zen laden es nur vorübergehend bis zum nächsten Browser-Neustart über ``about:debugging`` → *Temporäres Add-on laden*. Für eine dauerhafte Installation muss die Datei von Mozilla signiert werden (siehe docs/INSTALLATION.md)."
+          }
+          Add-Content -Encoding utf8 $notes "`n---`n`n$xpiNote"
           gh release create "v$env:VERSION" `
             "artifacts/installer/Kairo-$env:VERSION-x64.msi" `
+            "artifacts/extension/Kairo-Firefox-$env:VERSION.xpi" `
             "artifacts/installer/SHA256SUMS.txt" `
             --repo "${{ github.repository }}" `
             --target "${{ github.sha }}" `
             --title "Kairo $env:VERSION" `
-            --notes-file "docs/releases/$env:VERSION.md" `
+            --notes-file $notes `
             @flags
           if ($LASTEXITCODE -ne 0) { throw "gh release create failed" }
           gh release view "v$env:VERSION" --repo "${{ github.repository }}"

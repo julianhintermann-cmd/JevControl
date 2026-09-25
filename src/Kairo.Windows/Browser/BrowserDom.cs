@@ -31,11 +31,11 @@ public sealed class BrowserPerceptionProvider : IPerceptionProvider
 
     public int Priority => 20;
 
-    public bool CanHandle(WindowInfo window) => Enabled && window.IsChromiumBrowser && _bridge.ConnectionFor(window.BrowserKind) is not null;
+    public bool CanHandle(WindowInfo window) => Enabled && window.IsWebBrowser && _bridge.ConnectionFor(window) is not null;
 
     public async Task<UiSnapshot?> CaptureAsync(WindowInfo window, PerceptionRequest request, CancellationToken cancellationToken)
     {
-        var connection = _bridge.ConnectionFor(window.BrowserKind);
+        var connection = _bridge.ConnectionFor(window);
         if (connection is null) { return null; }
 
         var tabId = await FindTabAsync(connection, window, cancellationToken).ConfigureAwait(false);
@@ -206,7 +206,7 @@ public sealed class BrowserPerceptionProvider : IPerceptionProvider
 
     public async Task<IReadOnlyDictionary<string, ElementState>> ReadStatesAsync(UiSnapshot snapshot, IReadOnlyCollection<UiElement> elements, CancellationToken cancellationToken)
     {
-        var connection = _bridge.ConnectionFor(snapshot.Window.BrowserKind) ?? throw new BrowserBridgeException("disconnected", "Browser-Erweiterung nicht verbunden.");
+        var connection = _bridge.ConnectionFor(snapshot.Window) ?? throw new BrowserBridgeException("disconnected", "Browser-Erweiterung nicht verbunden.");
         var result = new Dictionary<string, ElementState>();
         foreach (var group in elements.GroupBy(e => ParseLocator(e.Locator).TabId))
         {
@@ -252,7 +252,7 @@ public sealed class BrowserElementActions
 
     public async Task<ActionResult> ExecuteAsync(AgentAction action, UiElement element, ActionContext context, CancellationToken cancellationToken)
     {
-        var connection = _bridge.ConnectionFor(context.TargetWindow.BrowserKind);
+        var connection = _bridge.ConnectionFor(context.TargetWindow);
         if (connection is null) { return ActionResult.Fail(ActionErrorKind.NotSupported, "Browser-Erweiterung nicht verbunden."); }
         var (tabId, kid) = BrowserPerceptionProvider.ParseLocator(element.Locator);
 
@@ -292,7 +292,7 @@ public sealed class BrowserElementActions
 
     public async Task<IReadOnlyList<ActionResult>> ExecuteBatchAsync(IReadOnlyList<(AgentAction Action, UiElement Element)> items, ActionContext context, CancellationToken cancellationToken)
     {
-        var connection = _bridge.ConnectionFor(context.TargetWindow.BrowserKind);
+        var connection = _bridge.ConnectionFor(context.TargetWindow);
         if (connection is null) { return items.Select(_ => ActionResult.Fail(ActionErrorKind.NotSupported, "Browser-Erweiterung nicht verbunden.")).ToList(); }
 
         var results = new List<ActionResult>();
@@ -337,7 +337,7 @@ public sealed class BrowserElementActions
     /// <summary>Tab level operations used by open_url / browser_tab.</summary>
     public async Task<ActionResult> TabOperationAsync(WindowInfo window, string operation, string? url, string? title, CancellationToken cancellationToken)
     {
-        var connection = _bridge.ConnectionFor(window.BrowserKind) ?? _bridge.Connections.FirstOrDefault();
+        var connection = _bridge.ConnectionFor(window) ?? _bridge.Connections.FirstOrDefault();
         if (connection is null) { return ActionResult.Fail(ActionErrorKind.NotSupported, "Browser-Erweiterung nicht verbunden."); }
         try
         {
@@ -378,5 +378,5 @@ public sealed class BrowserElementActions
         }
     }
 
-    public bool IsConnected(WindowInfo window) => window.IsChromiumBrowser && _bridge.ConnectionFor(window.BrowserKind) is not null;
+    public bool IsConnected(WindowInfo window) => window.IsWebBrowser && _bridge.ConnectionFor(window) is not null;
 }

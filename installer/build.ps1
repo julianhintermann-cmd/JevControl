@@ -7,6 +7,8 @@
     Runs on PowerShell 7 and Windows PowerShell 5.1. Output (default <repo>\artifacts):
       publish\Kairo\                   complete application folder that is harvested into the MSI
       installer\Kairo-<Version>-x64.msi
+      extension\Kairo-Firefox-<Version>.xpi   the extension packed for Firefox/Zen (also installed as
+                                             Kairo-Firefox.xpi next to Kairo.exe)
 
     The MSI is NOT signed here; CI signs it afterwards when a certificate is configured.
 
@@ -25,6 +27,10 @@
     Do not run "dotnet publish"; reuse the existing publish folder (e.g. with binaries that were signed
     in between). The extension is still copied and all required files are verified.
 
+.PARAMETER FirefoxXpi
+    Use this (Mozilla-signed) XPI instead of packing the extension unsigned. Firefox and Zen only install
+    signed add-ons permanently; the release workflow signs via addons.mozilla.org when configured.
+
 .EXAMPLE
     ./installer/build.ps1 -Configuration Release -Version 1.0.42
 #>
@@ -37,7 +43,9 @@ param(
 
     [string] $OutputDir = '..\artifacts',
 
-    [switch] $SkipPublish
+    [switch] $SkipPublish,
+
+    [string] $FirefoxXpi
 )
 
 $ErrorActionPreference = 'Stop'
@@ -161,14 +169,60 @@ Get-ChildItem -LiteralPath $extensionSource -Force |
     Where-Object { $_.Name -ne 'tools' } |
     ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $extensionTarget -Recurse -Force }
 
+# The published extension carries the product version (Firefox signing requires a new version per upload).
+$extensionManifest = Join-Path $extensionTarget 'manifest.json'
+$manifestText = [System.IO.File]::ReadAllText($extensionManifest)
+$versionPattern = '"version"\s*:\s*"[^"]*"'
+if (-not [regex]::IsMatch($manifestText, $versionPattern)) {
+    throw 'extension\manifest.json has no "version".'
+}
+$manifestText = ([regex]$versionPattern).Replace($manifestText, "`"version`": `"$Version`"", 1)
+[System.IO.File]::WriteAllText($extensionManifest, $manifestText, (New-Object System.Text.UTF8Encoding($false)))
+
+# ------------------------------------------------------------------------------------------------ Firefox XPI
+# An XPI is a ZIP with manifest.json at the root and forward slashes in entry names (ZipFile.CreateFromDirectory
+# on .NET Framework writes backslashes, which Firefox rejects).
+function New-Xpi([string] $SourceDir, [string] $Destination) {
+    Add-Type -AssemblyName System.IO.Compression
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    if (Test-Path -LiteralPath $Destination) { Remove-Item -LiteralPath $Destination -Force }
+    $root = (Resolve-Path -LiteralPath $SourceDir).Path.TrimEnd('\') + '\'
+    $zip = [System.IO.Compression.ZipFile]::Open($Destination, [System.IO.Compression.ZipArchiveMode]::Create)
+    try {
+        Get-ChildItem -LiteralPath $SourceDir -Recurse -File | Sort-Object FullName | ForEach-Object {
+            $entryName = $_.FullName.Substring($root.Length).Replace('\', '/')
+            [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $_.FullName, $entryName, [System.IO.Compression.CompressionLevel]::Optimal) | Out-Null
+        }
+    }
+    finally {
+        $zip.Dispose()
+    }
+}
+
+$extensionOutDir = Join-Path $OutputDir 'extension'
+New-Item -ItemType Directory -Path $extensionOutDir -Force | Out-Null
+$xpiOut = Join-Path $extensionOutDir "Kairo-Firefox-$Version.xpi"
+if ($FirefoxXpi) {
+    Write-Step "Using the signed Firefox add-on $FirefoxXpi"
+    if (-not (Test-Path -LiteralPath $FirefoxXpi -PathType Leaf)) { throw "FirefoxXpi '$FirefoxXpi' not found." }
+    Copy-Item -LiteralPath $FirefoxXpi -Destination $xpiOut -Force
+}
+else {
+    Write-Step 'Packing the extension for Firefox/Zen (unsigned XPI)'
+    New-Xpi -SourceDir $extensionTarget -Destination $xpiOut
+}
+Copy-Item -LiteralPath $xpiOut -Destination (Join-Path $publishDir 'Kairo-Firefox.xpi') -Force
+
 # ------------------------------------------------------------------------------------------------ verify
 Write-Step 'Verifying publish folder'
 $required = @(
     'Kairo.exe',
     'Kairo.BrowserHost.exe',
     'com.kairo.bridge.json',
+    'com.kairo.bridge.firefox.json',
     'Assets\kairo.ico',
-    'extension\manifest.json'
+    'extension\manifest.json',
+    'Kairo-Firefox.xpi'
 )
 $missing = @($required | Where-Object { -not (Test-Path -LiteralPath (Join-Path $publishDir $_) -PathType Leaf) })
 if ($missing.Count -gt 0) {
@@ -197,6 +251,26 @@ if (-not $manifestHost -or [System.IO.Path]::IsPathRooted($manifestHost)) {
 if (-not (Test-Path -LiteralPath (Join-Path $publishDir $manifestHost) -PathType Leaf)) {
     throw "com.kairo.bridge.json: host '$manifestHost' does not exist in the publish folder."
 }
+$geckoManifest = Get-Content -LiteralPath (Join-Path $publishDir 'com.kairo.bridge.firefox.json') -Raw | ConvertFrom-Json
+if ([string]$geckoManifest.path -ne $manifestHost -or @($geckoManifest.allowed_extensions) -notcontains 'kairo-bridge@jevcontrol') {
+    throw "com.kairo.bridge.firefox.json must point to '$manifestHost' and allow kairo-bridge@jevcontrol."
+}
+
+# The XPI must contain manifest.json at its root with the stamped version.
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$xpiZip = [System.IO.Compression.ZipFile]::OpenRead((Join-Path $publishDir 'Kairo-Firefox.xpi'))
+try {
+    $xpiManifestEntry = $xpiZip.GetEntry('manifest.json')
+    if (-not $xpiManifestEntry) { throw 'Kairo-Firefox.xpi has no manifest.json at its root.' }
+    if (@($xpiZip.Entries | Where-Object { $_.FullName.Contains('\') }).Count -gt 0) { throw 'Kairo-Firefox.xpi contains backslashes in entry names.' }
+    $reader = New-Object System.IO.StreamReader($xpiManifestEntry.Open())
+    try { $xpiManifest = $reader.ReadToEnd() | ConvertFrom-Json } finally { $reader.Dispose() }
+    if ([string]$xpiManifest.version -ne $Version) { throw "Kairo-Firefox.xpi has version '$($xpiManifest.version)', expected $Version." }
+}
+finally {
+    $xpiZip.Dispose()
+}
+
 try {
     Get-Content -LiteralPath (Join-Path $extensionTarget 'manifest.json') -Raw | ConvertFrom-Json | Out-Null
 }
@@ -229,4 +303,5 @@ $msi = Get-Item -LiteralPath $msiPath
 
 Write-Step 'Done'
 Write-Host ("MSI : {0}" -f $msi.FullName) -ForegroundColor Green
+Write-Host ("XPI : {0}" -f $xpiOut) -ForegroundColor Green
 Write-Host ("Size: {0:N1} MB ({1:N0} bytes)" -f ($msi.Length / 1MB), $msi.Length) -ForegroundColor Green

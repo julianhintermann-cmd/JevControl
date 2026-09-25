@@ -169,8 +169,10 @@ public static class CommandLineActions
                 var dir = AppContext.BaseDirectory;
                 var host = Path.Combine(dir, "Kairo.BrowserHost.exe");
                 var manifest = Path.Combine(dir, "com.kairo.bridge.json");
+                var geckoManifest = Path.Combine(dir, NativeHostRegistrar.GeckoManifestName);
                 if (!File.Exists(host)) { throw new FileNotFoundException("Kairo.BrowserHost.exe fehlt"); }
                 if (!File.Exists(manifest)) { throw new FileNotFoundException("com.kairo.bridge.json fehlt"); }
+                if (!File.Exists(geckoManifest)) { throw new FileNotFoundException($"{NativeHostRegistrar.GeckoManifestName} fehlt"); }
                 return NativeHostRegistrar.IsRegistered() ? "registriert" : "nicht registriert";
             });
         }

@@ -100,12 +100,16 @@ public sealed record WindowInfo
     /// <summary>Chromium based browser (Chrome, Edge, Brave, ...).</summary>
     public bool IsChromiumBrowser => BrowserKind is BrowserKind.Chrome or BrowserKind.Edge or BrowserKind.OtherChromium;
 
+    /// <summary>A browser the Kairo extension runs in (Chromium or Gecko: Firefox, Zen, ...).</summary>
+    public bool IsWebBrowser => BrowserKind != BrowserKind.None;
+
     public BrowserKind BrowserKind => ProcessName.ToLowerInvariant() switch
     {
         "chrome" => BrowserKind.Chrome,
         "msedge" => BrowserKind.Edge,
         "brave" or "vivaldi" or "opera" or "chromium" => BrowserKind.OtherChromium,
-        "firefox" => BrowserKind.Firefox,
+        // Gecko: Firefox and its forks run the same extension build.
+        "firefox" or "zen" or "librewolf" or "floorp" or "waterfox" => BrowserKind.Firefox,
         _ => BrowserKind.None,
     };
 
@@ -114,6 +118,7 @@ public sealed record WindowInfo
     private static readonly Dictionary<string, string> KnownApps = new(StringComparer.OrdinalIgnoreCase)
     {
         ["chrome"] = "Google Chrome", ["msedge"] = "Microsoft Edge", ["firefox"] = "Firefox", ["brave"] = "Brave",
+        ["zen"] = "Zen Browser", ["librewolf"] = "LibreWolf", ["floorp"] = "Floorp", ["waterfox"] = "Waterfox",
         ["notepad"] = "Editor", ["explorer"] = "Explorer", ["winword"] = "Word", ["excel"] = "Excel",
         ["powerpnt"] = "PowerPoint", ["outlook"] = "Outlook", ["olk"] = "Outlook", ["ms-teams"] = "Teams",
         ["calc"] = "Rechner", ["calculatorapp"] = "Rechner", ["mspaint"] = "Paint", ["acrobat"] = "Adobe Acrobat",
@@ -129,6 +134,7 @@ public enum BrowserKind
     Chrome,
     Edge,
     OtherChromium,
+    /// <summary>Gecko based: Firefox, Zen, LibreWolf, Floorp, Waterfox.</summary>
     Firefox,
 }
 

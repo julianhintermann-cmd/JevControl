@@ -43,15 +43,19 @@ public sealed class AutostartManager
 }
 
 /// <summary>
-/// Registers the native messaging host "com.kairo.bridge" for Chrome and Edge (per user).
-/// The installer writes the same keys; this class repairs them for portable/dev runs.
+/// Registers the native messaging host "com.kairo.bridge" per user for Chromium (Chrome, Edge, Chromium, Brave)
+/// and Gecko browsers (Firefox and forks such as Zen, which all read the Mozilla key). The two engines need
+/// different manifests: Chromium allows extension origins, Gecko add-on ids. The installer writes the same
+/// keys; this class repairs them for portable/dev runs.
 /// </summary>
 public sealed class NativeHostRegistrar
 {
     public const string HostName = "com.kairo.bridge";
     public const string ExtensionId = "fjdcafkellelfdkneebdlmoggkhkilmh";
+    public const string GeckoExtensionId = "kairo-bridge@jevcontrol";
+    public const string GeckoManifestName = HostName + ".firefox.json";
 
-    private static readonly string[] BrowserKeys =
+    private static readonly string[] ChromiumKeys =
     [
         @"Software\Google\Chrome\NativeMessagingHosts\" + HostName,
         @"Software\Microsoft\Edge\NativeMessagingHosts\" + HostName,
@@ -59,37 +63,54 @@ public sealed class NativeHostRegistrar
         @"Software\BraveSoftware\Brave-Browser\NativeMessagingHosts\" + HostName,
     ];
 
-    /// <summary>Writes the host manifest next to the host exe and points the browser registry keys to it.</summary>
+    private const string GeckoKey = @"Software\Mozilla\NativeMessagingHosts\" + HostName;
+
+    /// <summary>
+    /// Writes both host manifests next to each other and points the browser registry keys to them.
+    /// Returns the path of the Chromium manifest.
+    /// </summary>
     public static string Register(string hostExecutablePath, string manifestDirectory)
     {
         Directory.CreateDirectory(manifestDirectory);
-        var manifestPath = Path.Combine(manifestDirectory, HostName + ".json");
-        var manifest = new JsonObject
-        {
-            ["name"] = HostName,
-            ["description"] = "Kairo Browser Bridge",
-            ["path"] = hostExecutablePath,
-            ["type"] = "stdio",
-            ["allowed_origins"] = new JsonArray($"chrome-extension://{ExtensionId}/"),
-        };
-        File.WriteAllText(manifestPath, manifest.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
-        foreach (var keyPath in BrowserKeys)
+        var options = new System.Text.Json.JsonSerializerOptions { WriteIndented = true };
+        var chromiumManifest = Path.Combine(manifestDirectory, HostName + ".json");
+        File.WriteAllText(chromiumManifest, Manifest(hostExecutablePath, "allowed_origins", $"chrome-extension://{ExtensionId}/").ToJsonString(options));
+        var geckoManifest = Path.Combine(manifestDirectory, GeckoManifestName);
+        File.WriteAllText(geckoManifest, Manifest(hostExecutablePath, "allowed_extensions", GeckoExtensionId).ToJsonString(options));
+
+        foreach (var keyPath in ChromiumKeys)
         {
             using var key = Registry.CurrentUser.CreateSubKey(keyPath, writable: true);
-            key.SetValue(null, manifestPath);
+            key.SetValue(null, chromiumManifest);
         }
-        return manifestPath;
+        using (var key = Registry.CurrentUser.CreateSubKey(GeckoKey, writable: true))
+        {
+            key.SetValue(null, geckoManifest);
+        }
+        return chromiumManifest;
     }
 
-    public static bool IsRegistered()
+    private static JsonObject Manifest(string hostExecutablePath, string allowListName, string allowed) => new()
     {
-        using var key = Registry.CurrentUser.OpenSubKey(BrowserKeys[0]);
+        ["name"] = HostName,
+        ["description"] = "Kairo Browser Bridge",
+        ["path"] = hostExecutablePath,
+        ["type"] = "stdio",
+        [allowListName] = new JsonArray(allowed),
+    };
+
+    /// <summary>True if Chrome and Firefox/Zen both find an existing manifest (older installs lack the Gecko one).</summary>
+    public static bool IsRegistered() => PointsToExistingFile(ChromiumKeys[0]) && PointsToExistingFile(GeckoKey);
+
+    private static bool PointsToExistingFile(string keyPath)
+    {
+        using var key = Registry.CurrentUser.OpenSubKey(keyPath);
         return key?.GetValue(null) is string path && File.Exists(path);
     }
 
     public static void Unregister()
     {
-        foreach (var keyPath in BrowserKeys)
+        foreach (var keyPath in ChromiumKeys.Append(GeckoKey))
         {
             Registry.CurrentUser.DeleteSubKeyTree(keyPath, throwOnMissingSubKey: false);
         }

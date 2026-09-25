@@ -1,0 +1,9 @@
+{
+  "name": "com.kairo.bridge",
+  "description": "Kairo Browser Bridge",
+  "path": "Kairo.BrowserHost.exe",
+  "type": "stdio",
+  "allowed_extensions": [
+    "kairo-bridge@jevcontrol"
+  ]
+}

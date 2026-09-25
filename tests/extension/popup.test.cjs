@@ -24,12 +24,28 @@ after(async () => {
 });
 
 /** Opens the popup with a fake background that answers with `status`. */
-async function openPopup(status, { colorScheme = 'light' } = {}) {
+async function openPopup(status, { colorScheme = 'light', hostPermission } = {}) {
   const page = await browser.newPage({ colorScheme });
-  await page.addInitScript((initial) => {
+  await page.addInitScript(({ initial, granted }) => {
     window.__sent = [];
     window.__status = initial;
+    window.__permissionRequests = [];
     window.chrome = window.chrome || {};
+    if (granted !== undefined) {
+      // Firefox/Zen (MV3): website access may be missing until the user grants it.
+      window.__granted = granted;
+      window.chrome.permissions = {
+        contains: async (p) => {
+          if (JSON.stringify(p) !== JSON.stringify({ origins: ['<all_urls>'] })) throw new Error('unexpected query');
+          return window.__granted;
+        },
+        request: async (p) => {
+          window.__permissionRequests.push(p);
+          window.__granted = true;
+          return true;
+        },
+      };
+    }
     window.chrome.runtime = {
       sendMessage: async (msg) => {
         window.__sent.push(msg.kind);
@@ -40,7 +56,7 @@ async function openPopup(status, { colorScheme = 'light' } = {}) {
         return window.__status;
       },
     };
-  }, status);
+  }, { initial: status, granted: hostPermission });
   await page.goto(POPUP_URL);
   return page;
 }
@@ -86,6 +102,25 @@ describe('popup', () => {
     await page.waitForFunction(() => document.getElementById('reconnect').textContent === 'Erneut verbinden');
     assert.ok((await page.evaluate(() => window.__sent)).includes('kairo:reconnect'));
     assert.equal(await page.textContent('#status-title'), 'Verbunden mit Kairo');
+    await page.close();
+  });
+
+  test('shows the Gecko product name (Zen) and hides the permission box when access is granted', async () => {
+    const page = await openPopup({ ...base, browser: 'firefox', product: 'Zen' }, { hostPermission: true });
+    await page.waitForFunction(() => document.getElementById('status').dataset.state === 'connected');
+    assert.equal(await page.textContent('#browser'), 'Zen');
+    assert.equal(await page.isHidden('#permission'), true);
+    await page.close();
+  });
+
+  test('asks for website access when it is missing and hides the request after granting', async () => {
+    const page = await openPopup({ ...base, browser: 'firefox' }, { hostPermission: false });
+    await page.waitForSelector('#permission', { state: 'visible' });
+    assert.equal(await page.textContent('#browser'), 'Firefox');
+    assert.equal(await page.textContent('#grant'), 'Zugriff auf Websites erlauben');
+    await page.click('#grant');
+    await page.waitForSelector('#permission', { state: 'hidden' });
+    assert.deepEqual(await page.evaluate(() => window.__permissionRequests), [{ origins: ['<all_urls>'] }]);
     await page.close();
   });
 

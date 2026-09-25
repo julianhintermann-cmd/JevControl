@@ -6,19 +6,18 @@ using Kairo.Shared;
 namespace Kairo.BrowserHost;
 
 /// <summary>
-/// Native messaging host started by Chrome/Edge for the Kairo extension. It only relays framed JSON messages
-/// between the browser (stdin/stdout) and the Kairo desktop app (per-user named pipe). It never interprets or
-/// stores message content.
+/// Native messaging host started by Chrome/Edge or Firefox/Zen for the Kairo extension. It only relays framed
+/// JSON messages between the browser (stdin/stdout) and the Kairo desktop app (per-user named pipe). It never
+/// interprets or stores message content.
 /// </summary>
 internal static class Program
 {
     private const string ExtensionOrigin = "chrome-extension://fjdcafkellelfdkneebdlmoggkhkilmh/";
+    private const string GeckoExtensionId = "kairo-bridge@jevcontrol";
 
     private static async Task<int> Main(string[] args)
     {
-        // Chrome passes the calling extension's origin as first argument (plus --parent-window on Windows).
-        var origin = args.FirstOrDefault(a => a.StartsWith("chrome-extension://", StringComparison.OrdinalIgnoreCase));
-        if (origin is not null && !string.Equals(origin, ExtensionOrigin, StringComparison.OrdinalIgnoreCase))
+        if (!IsAllowedCaller(args))
         {
             return 2;
         }
@@ -98,5 +97,24 @@ internal static class Program
         }
         cts.Cancel();
         return 0;
+    }
+
+    /// <summary>
+    /// Chromium passes the calling extension's origin (plus --parent-window on Windows); Gecko browsers pass the
+    /// path of the host manifest and the calling add-on's id. A call naming another extension is rejected; the
+    /// browser already enforces the manifest's allow list, this is a second line of defense.
+    /// </summary>
+    private static bool IsAllowedCaller(string[] args)
+    {
+        var origin = args.FirstOrDefault(a => a.StartsWith("chrome-extension://", StringComparison.OrdinalIgnoreCase));
+        if (origin is not null)
+        {
+            return string.Equals(origin, ExtensionOrigin, StringComparison.OrdinalIgnoreCase);
+        }
+        if (args.Length >= 2 && args[0].EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+        {
+            return string.Equals(args[1], GeckoExtensionId, StringComparison.Ordinal);
+        }
+        return true;
     }
 }

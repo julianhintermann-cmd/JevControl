@@ -9,14 +9,16 @@ const { describe, test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const { CONTENT_JS, FIXTURES_DIR, loadPlaywright, startStaticServer } = require('./helpers.cjs');
 
-const { chromium } = loadPlaywright();
+// KAIRO_TEST_BROWSER=firefox runs the same DOM tests in Gecko (Firefox/Zen engine).
+const ENGINE = process.env.KAIRO_TEST_BROWSER || 'chromium';
+const browserType = loadPlaywright()[ENGINE];
 
 let browser;
 let server;
 
 before(async () => {
   server = await startStaticServer(FIXTURES_DIR);
-  browser = await chromium.launch({ headless: true });
+  browser = await browserType.launch({ headless: true });
 });
 
 after(async () => {

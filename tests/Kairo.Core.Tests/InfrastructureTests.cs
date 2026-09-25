@@ -10,6 +10,22 @@ namespace Kairo.Core.Tests;
 
 public class InfrastructureTests
 {
+    [Theory]
+    [InlineData("chrome", BrowserKind.Chrome, "Google Chrome")]
+    [InlineData("msedge", BrowserKind.Edge, "Microsoft Edge")]
+    [InlineData("firefox", BrowserKind.Firefox, "Firefox")]
+    [InlineData("zen", BrowserKind.Firefox, "Zen Browser")]
+    [InlineData("librewolf", BrowserKind.Firefox, "LibreWolf")]
+    [InlineData("notepad", BrowserKind.None, "Editor")]
+    public void Browsers_are_recognized_by_process_including_gecko_forks(string process, BrowserKind kind, string appName)
+    {
+        var window = new WindowInfo { Handle = 1, Title = "Kontakt", ProcessName = process };
+        Assert.Equal(kind, window.BrowserKind);
+        Assert.Equal(kind != BrowserKind.None, window.IsWebBrowser);
+        Assert.Equal(kind is BrowserKind.Chrome or BrowserKind.Edge, window.IsChromiumBrowser);
+        Assert.Equal(appName, window.AppName);
+    }
+
     [Fact]
     public void Settings_roundtrip_and_never_contain_secrets()
     {

@@ -149,7 +149,7 @@ public sealed class KairoRuntime : IAsyncDisposable
     {
         // DOM or navigation changes in the watched browser window invalidate its snapshot.
         var target = Tasks.Current is { State: var state } current && !state.IsFinal() ? current.TargetWindow : null;
-        if (target is null || !target.IsChromiumBrowser || target.BrowserKind != e.Connection.Kind && e.Connection.Kind != Core.Models.BrowserKind.OtherChromium) { return; }
+        if (target is null || !target.IsWebBrowser || Bridge.ConnectionFor(target) != e.Connection) { return; }
         var kind = e.Event is "navigationCompleted" or "tabActivated" or "tabRemoved" ? UiChangeKind.Navigation : UiChangeKind.Structure;
         Perception.Invalidate(target.Handle);
         ChangeMonitor.RaiseExternal(target.Handle, kind);

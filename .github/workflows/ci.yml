@@ -37,7 +37,7 @@ jobs:
           path: TestResults
 
   extension:
-    name: Browser extension tests (Chromium)
+    name: Browser extension tests (Chromium, Firefox)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -45,15 +45,22 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Install Playwright + Chromium
+      - name: Install Playwright + Chromium + Firefox
         run: |
           npm install -g playwright@1.56.1
-          npx -y playwright@1.56.1 install --with-deps chromium
-      - name: Lint and test
+          npx -y playwright@1.56.1 install --with-deps chromium firefox
+      - name: Lint and test (Chromium)
         working-directory: tests/extension
         run: |
           npm run lint
           npm test
+      - name: Content agent tests (Firefox / Gecko)
+        if: always()
+        working-directory: tests/extension
+        run: npm run test:firefox
+      - name: Firefox add-on validation (web-ext lint, same rules as addons.mozilla.org)
+        if: always()
+        run: npx -y web-ext@8 lint --source-dir extension --ignore-files "tools/**" "README.md" --self-hosted
 
   windows:
     name: Windows build, integration & E2E tests, installer
@@ -87,7 +94,7 @@ jobs:
         if: always() && steps.build.outcome == 'success'
         run: dotnet test tests/Kairo.Windows.Tests/Kairo.Windows.Tests.csproj -c Release --no-build --logger "trx;LogFileName=windows.trx" --logger "console;verbosity=normal" --results-directory TestResults
 
-      - name: End-to-end tests (agent loop on a native form and in Microsoft Edge)
+      - name: End-to-end tests (agent loop on a native form, in Microsoft Edge and in Firefox)
         if: always() && steps.build.outcome == 'success'
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
@@ -138,7 +145,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Kairo-installer
-          path: artifacts/installer/*.msi
+          path: |
+            artifacts/installer/*.msi
+            artifacts/extension/*.xpi
           if-no-files-found: warn
 
       - name: Upload screenshots

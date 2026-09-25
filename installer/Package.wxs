@@ -152,7 +152,8 @@
   <Fragment>
     <ComponentGroup Id="KairoIntegration">
 
-      <!-- Always: install location, browser native messaging host (Chrome + Edge), folder cleanup. -->
+      <!-- Always: install location, browser native messaging host (Chrome + Edge; Firefox and its forks such as
+           Zen read the Mozilla key with their own manifest), folder cleanup. -->
       <Component Id="KairoRegistration" Directory="INSTALLFOLDER" Guid="ED6BD5C0-BCC9-4416-846F-56089AB6E492">
         <RegistryKey Root="HKCU" Key="Software\Kairo\Installer" ForceDeleteOnUninstall="yes">
           <RegistryValue Name="InstallFolder" Type="string" Value="[INSTALLFOLDER]" KeyPath="yes" />
@@ -162,6 +163,9 @@
         </RegistryKey>
         <RegistryKey Root="HKCU" Key="Software\Microsoft\Edge\NativeMessagingHosts\com.kairo.bridge" ForceDeleteOnUninstall="yes">
           <RegistryValue Type="string" Value="[INSTALLFOLDER]com.kairo.bridge.json" />
+        </RegistryKey>
+        <RegistryKey Root="HKCU" Key="Software\Mozilla\NativeMessagingHosts\com.kairo.bridge" ForceDeleteOnUninstall="yes">
+          <RegistryValue Type="string" Value="[INSTALLFOLDER]com.kairo.bridge.firefox.json" />
         </RegistryKey>
         <RemoveFolder Id="RemoveKairoInstallFolder" Directory="INSTALLFOLDER" On="uninstall" />
         <RemoveFolder Id="RemoveKairoProgramsFolder" Directory="KairoProgramsFolder" On="uninstall" />
