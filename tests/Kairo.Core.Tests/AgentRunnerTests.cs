@@ -131,6 +131,9 @@ public class AgentRunnerTests
         Assert.Equal("Schweiz", desktop.Get("Land").Value);
         Assert.True(desktop.Get("Ich akzeptiere die Datenschutzerklärung").Checked);
         Assert.False(desktop.Submitted); // "ausfüllen" ≠ absenden
+        // The goal check sees the planner's own report (explains fields left empty on purpose).
+        var goalCheck = Assert.Single(harness.Jev.Requests, r => r.Purpose == "verify");
+        Assert.Equal("Das Kontaktformular ist ausgefüllt.", goalCheck.State["agent_report"]?.GetValue<string>());
 
         // One planner call, one Jev resolution request for the whole batch, one Jev goal check.
         Assert.Single(harness.Chat.Requests);

@@ -132,7 +132,8 @@ public sealed class Verifier
     /// Jev noul: "has the user's goal been achieved?" on the final UI state and the list of executed steps.
     /// Returns null when Jev is not available.
     /// </summary>
-    public async Task<double?> CheckGoalAsync(string instruction, IReadOnlyList<string> executedSteps, UiSnapshot? snapshot, string model, SecretVault vault, CancellationToken cancellationToken)
+    /// <param name="agentReport">The planner's own final message – explains fields that were left empty on purpose.</param>
+    public async Task<double?> CheckGoalAsync(string instruction, IReadOnlyList<string> executedSteps, UiSnapshot? snapshot, string model, SecretVault vault, CancellationToken cancellationToken, string? agentReport = null)
     {
         if (_jev is null) { return null; }
         try
@@ -142,6 +143,10 @@ public sealed class Verifier
                 ["user_goal"] = SnapshotFormatter.Clip(instruction, 500),
                 ["executed_steps"] = new JsonArray(executedSteps.TakeLast(40).Select(s => (JsonNode)JsonValue.Create(SnapshotFormatter.Clip(s, 160))!).ToArray()),
             };
+            if (!string.IsNullOrWhiteSpace(agentReport))
+            {
+                state["agent_report"] = SnapshotFormatter.Clip(vault.Mask(agentReport), 400);
+            }
             if (snapshot is not null)
             {
                 state["application"] = snapshot.Window.ProcessName;
@@ -161,8 +166,8 @@ public sealed class Verifier
                 Questions = new Dictionary<string, JevQuestion>
                 {
                     ["goal_achieved"] = JevQuestion.Noul(
-                        "Based on current_ui, visible_texts and executed_steps: has user_goal been fully achieved? Only what the user explicitly asked for counts (e.g. a form that should only be filled in does not need to be submitted).",
-                        "Everything the user asked for is visibly done",
+                        "Based on current_ui, visible_texts and executed_steps: has user_goal been fully achieved? Only what the user explicitly asked for counts: a form that should only be filled in does not need to be submitted, fields for which no data was available may stay empty, and consent or newsletter checkboxes stay unticked unless the user asked for them. agent_report explains what was left out on purpose; check it against current_ui.",
+                        "Everything the user asked for is visibly done; anything left empty is explained by agent_report and consistent with user_goal",
                         "Something the user asked for is missing, wrong or shows an error"),
                 },
             }, cancellationToken).ConfigureAwait(false);

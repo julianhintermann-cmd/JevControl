@@ -163,7 +163,7 @@ public sealed class AgentRunner
                     {
                         using (_s.Usage.Measure("verify.goal"))
                         {
-                            p = await _s.Verifier.CheckGoalAsync(task.Instruction, run.ExecutedDescriptions, run.Snapshot, settings.Models.DecisionModel, vault, gate.Token).ConfigureAwait(false);
+                            p = await _s.Verifier.CheckGoalAsync(task.Instruction, run.ExecutedDescriptions, run.Snapshot, settings.Models.DecisionModel, vault, gate.Token, plan.FinalMessage).ConfigureAwait(false);
                         }
                         if (p is { } prob) { task.AddLog(TaskLogKind.Verification, $"Jev: Ziel erreicht mit {prob.ToString("P0", CultureInfo.GetCultureInfo("de-CH"))} Wahrscheinlichkeit."); }
                     }
@@ -180,7 +180,7 @@ public sealed class AgentRunner
                     }
 
                     goalRechecks++;
-                    run.Notes.Add($"The decision model estimates only {p.Value:P0} that the user's goal is achieved. Check the current UI state carefully and fix what is missing or wrong; if everything is done, return no steps with after_steps=verify_and_finish.");
+                    run.Notes.Add($"The decision model estimates only {p.Value:P0} that the user's goal is achieved. Check the current UI state carefully and fix only what is actually missing or wrong. Do not repeat steps whose values are already correct. If everything the user asked for is done, return no steps with after_steps=verify_and_finish and a final_message.");
                     continue;
                 }
 
