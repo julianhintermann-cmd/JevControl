@@ -175,10 +175,14 @@ Der Test läuft so ab:
 1. Installiert still mit `INSTALLDESKTOPSHORTCUT=1 AUTOSTART=1`.
 2. Prüft Dateien, Verknüpfungen, Autostart und beide Native-Messaging-Registrierungen: Manifest vorhanden,
    `path` zeigt auf eine vorhandene EXE, Erweiterungs-ID erlaubt.
-3. Führt `Kairo.exe --selftest --selftest-out selftest.json` aus und erwartet Exit-Code 0.
-4. Legt Benutzerdaten an und deinstalliert still **ohne** `REMOVEUSERDATA`. Die Daten müssen erhalten bleiben.
-5. Installiert erneut. Die Daten sind noch da.
-6. Deinstalliert still **mit** `REMOVEUSERDATA=1` und prüft, dass alles entfernt wurde, auch
+3. Führt `Kairo.exe --selftest --selftest-out selftest.json` aus und erwartet Exit-Code 0. Der Selbsttest
+   lädt unter anderem die eingebetteten Tray-Symbole im echten `Kairo.exe`.
+4. Startet die installierte `Kairo.exe` wie ein Benutzer, also ohne Schalter und mit dem echten Datenordner.
+   Erwartet wird: kein `startup-error.txt`, der Prozess läuft weiter, das Fenster „Kairo einrichten“ erscheint.
+   Danach wird Kairo beendet.
+5. Legt Benutzerdaten an und deinstalliert still **ohne** `REMOVEUSERDATA`. Die Daten müssen erhalten bleiben.
+6. Installiert erneut. Die Daten sind noch da.
+7. Deinstalliert still **mit** `REMOVEUSERDATA=1` und prüft, dass alles entfernt wurde, auch
    `%APPDATA%\Kairo` und `%LOCALAPPDATA%\Kairo`.
 
 Außerhalb der CI verweigert das Skript den Lauf, wenn bereits Kairo-Benutzerdaten existieren. Der letzte

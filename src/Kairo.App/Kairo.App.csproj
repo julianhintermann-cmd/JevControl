@@ -37,7 +37,9 @@
     <Resource Include="Assets\kairo-paused.ico" />
     <Resource Include="Assets\kairo-logo.png" />
     <Resource Include="Assets\kairo-logo-64.png" />
-    <Content Include="Assets\kairo.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Link="Assets\kairo.ico" />
+    <!-- Loose copy for the installer (shortcut/ARP icon). Deliberately not "Content": WPF would then register it as a
+         loose content file and Application.GetResourceStream would return null for the embedded tray icon. -->
+    <None Update="Assets\kairo.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

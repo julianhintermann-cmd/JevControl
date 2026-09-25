@@ -63,9 +63,12 @@ public sealed class TrayIconService : IDisposable
 
     public string HotkeyText { get; set; } = "Strg + Alt + K";
 
-    private static System.Drawing.Icon LoadIcon(string name)
+    /// <summary>Loads an embedded tray icon (also checked by <c>--selftest</c>).</summary>
+    internal static System.Drawing.Icon LoadIcon(string name)
     {
-        var info = Application.GetResourceStream(new Uri($"pack://application:,,,/Kairo;component/Assets/{name}"));
+        // GetResourceStream returns null (no exception) when WPF considers the path a loose content file.
+        var info = Application.GetResourceStream(new Uri($"pack://application:,,,/Kairo;component/Assets/{name}"))
+            ?? throw new InvalidOperationException($"Tray icon resource 'Assets/{name}' is not embedded as a WPF resource.");
         using var stream = info.Stream;
         return new System.Drawing.Icon(stream, Forms.SystemInformation.SmallIconSize);
     }

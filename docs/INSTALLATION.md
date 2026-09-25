@@ -111,5 +111,6 @@ sicher löschen*.
 | Erweiterung „Nicht verbunden“ | Kairo starten. Nach einer Neuinstallation einmal „Erneut verbinden“ im Erweiterungs-Popup klicken. |
 | Eingaben kommen in einer App nicht an | Läuft die App als Administrator? Windows blockiert dann Eingaben von Kairo. Die App ohne Administratorrechte starten. |
 | Kairo soll nichts mehr tun | **Strg+Alt+Umschalt+K** oder Tray → *Computersteuerung pausieren* |
+| „Kairo konnte nicht gestartet werden“ | Die Datei `%LOCALAPPDATA%\Kairo\logs\startup-error.txt` enthält die technischen Details (ohne API-Schlüssel und ohne persönliche Inhalte). Bitte mit einem Issue melden. Version 1.0.0 hatte diesen Fehler bei jedem Start; behoben in 1.0.1. |
 
 Protokolle ohne Inhalte liegen unter `%LOCALAPPDATA%\Kairo\logs`.

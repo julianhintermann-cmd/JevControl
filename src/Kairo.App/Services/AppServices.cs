@@ -145,6 +145,13 @@ public static class CommandLineActions
                 runtime.DisposeAsync().AsTask().GetAwaiter().GetResult();
                 return $"windows={windows}";
             });
+            Check("tray-icons", true, () =>
+            {
+                // Runs inside the real Kairo.exe, so WPF resolves the pack URIs exactly like the normal start does.
+                using var normal = TrayIconService.LoadIcon("kairo.ico");
+                using var paused = TrayIconService.LoadIcon("kairo-paused.ico");
+                return $"{normal.Width}x{normal.Height}, {paused.Width}x{paused.Height}";
+            });
             Check("hotkey", false, () =>
             {
                 using var hotkeys = new GlobalHotkeyManager(KairoLogger.Null);
