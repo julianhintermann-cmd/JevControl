@@ -151,6 +151,13 @@ unter `docs/screenshots/` im jeweiligen Branch ab.
 
 ## Release
 
+Veröffentlicht wird über den manuell startbaren Workflow `.github/workflows/release.yml` (*Actions → Release →
+Run workflow*, Eingaben: Version und Vorabversion ja/nein). Er baut das MSI und testet genau dieses MSI mit
+`test-install.ps1`. Anschließend erstellt er das GitHub-Release `v<Version>` mit MSI und `SHA256SUMS.txt`. Die
+Release-Notes stammen aus `docs/releases/<Version>.md` (Pflicht).
+
+Lokal:
+
 ```powershell
 ./installer/build.ps1 -Configuration Release -Version 1.2.0
 ```

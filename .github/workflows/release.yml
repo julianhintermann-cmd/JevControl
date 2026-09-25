@@ -1,0 +1,105 @@
+name: Release
+
+# Manually started: builds the MSI for the given version, runs the install/uninstall test against exactly this
+# MSI, and publishes it with a SHA-256 checksum as a GitHub release (tag v<version> on the built commit).
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version (Major.Minor.Build)
+        required: true
+        default: 1.0.0
+      prerelease:
+        description: Mark as pre-release
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    env:
+      VERSION: ${{ inputs.version }}
+      HAS_SIGNING_CERT: ${{ secrets.CODE_SIGNING_CERT_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Check version and tag
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ($env:VERSION -notmatch '^\d+\.\d+\.\d+$') { throw "Version must be Major.Minor.Build, got '$env:VERSION'" }
+          gh release view "v$env:VERSION" --repo "${{ github.repository }}" 2>$null
+          if ($LASTEXITCODE -eq 0) { throw "Release v$env:VERSION already exists." }
+          if (-not (Test-Path "docs/releases/$env:VERSION.md")) { throw "Release notes docs/releases/$env:VERSION.md are missing." }
+          exit 0
+
+      - name: Build installer (publish self-contained + WiX MSI)
+        shell: pwsh
+        run: ./installer/build.ps1 -Configuration Release -Version $env:VERSION
+
+      - name: Sign installer (only if a code signing certificate is configured)
+        if: env.HAS_SIGNING_CERT == 'true'
+        env:
+          SIGNING_CERT: ${{ secrets.CODE_SIGNING_CERT_BASE64 }}
+          SIGNING_PASSWORD: ${{ secrets.CODE_SIGNING_CERT_PASSWORD }}
+        shell: pwsh
+        run: |
+          $pfx = Join-Path $env:RUNNER_TEMP "signing.pfx"
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:SIGNING_CERT))
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe | Where-Object FullName -match 'x64' | Select-Object -Last 1
+          Get-ChildItem artifacts/installer -Filter *.msi | ForEach-Object {
+            & $signtool.FullName sign /fd SHA256 /f $pfx /p $env:SIGNING_PASSWORD /tr http://timestamp.digicert.com /td SHA256 $_.FullName
+            if ($LASTEXITCODE -ne 0) { throw "signing failed" }
+          }
+          Remove-Item $pfx
+
+      - name: Install / uninstall test of the release MSI
+        shell: pwsh
+        run: ./installer/test-install.ps1 -Msi "artifacts/installer/Kairo-$env:VERSION-x64.msi"
+
+      - name: Checksum
+        shell: pwsh
+        run: |
+          $msi = "artifacts/installer/Kairo-$env:VERSION-x64.msi"
+          $hash = (Get-FileHash -Algorithm SHA256 $msi).Hash.ToLowerInvariant()
+          "$hash  Kairo-$env:VERSION-x64.msi" | Set-Content -Encoding ascii artifacts/installer/SHA256SUMS.txt
+          Get-Content artifacts/installer/SHA256SUMS.txt
+
+      - name: Publish GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $flags = @()
+          if ("${{ inputs.prerelease }}" -eq "true") { $flags += "--prerelease" }
+          gh release create "v$env:VERSION" `
+            "artifacts/installer/Kairo-$env:VERSION-x64.msi" `
+            "artifacts/installer/SHA256SUMS.txt" `
+            --repo "${{ github.repository }}" `
+            --target "${{ github.sha }}" `
+            --title "Kairo $env:VERSION" `
+            --notes-file "docs/releases/$env:VERSION.md" `
+            @flags
+          if ($LASTEXITCODE -ne 0) { throw "gh release create failed" }
+          gh release view "v$env:VERSION" --repo "${{ github.repository }}"
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-logs
+          path: artifacts/test-install
+          if-no-files-found: ignore

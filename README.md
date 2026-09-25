@@ -45,7 +45,8 @@ es das Ergebnis und fragt, bevor es etwas absendet.
 
 Ausführlich in [docs/INSTALLATION.md](docs/INSTALLATION.md).
 
-1. `Kairo-<Version>-x64.msi` ausführen. Die Installation erfolgt pro Benutzer, ohne Administratorrechte und
+1. `Kairo-<Version>-x64.msi` von der [Releases-Seite](https://github.com/julianhintermann-cmd/JevControl/releases)
+   herunterladen und ausführen. Die Installation erfolgt pro Benutzer, ohne Administratorrechte und
    ohne vorinstalliertes .NET. Im Assistenten wählst du Desktopverknüpfung und Autostart.
 2. Beim ersten Start fragt Kairo nach deinem **OpenRouter-API-Schlüssel** und prüft ihn samt Modellen und Jev
    (siehe [docs/OPENROUTER.md](docs/OPENROUTER.md)).
