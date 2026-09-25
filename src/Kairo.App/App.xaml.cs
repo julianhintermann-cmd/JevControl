@@ -139,7 +139,7 @@ public partial class App : Application, IAppHost
         _runtime.Tasks.TaskFinished += (_, task) => Dispatcher.BeginInvoke(() => OnTaskFinished(task));
 
         EnsureNativeHostRegistration(hostPath);
-        SyncAutostart(settings.General.StartWithWindows);
+        SyncAutostart();
 
         if (!settings.OnboardingCompleted || !_runtime.HasApiKey)
         {
@@ -183,11 +183,20 @@ public partial class App : Application, IAppHost
         }
     }
 
-    private void SyncAutostart(bool enabled)
+    /// <summary>
+    /// The Run value is the source of truth: the installer (AUTOSTART option) or the settings page may have set
+    /// it. The setting mirrors it; an entry pointing to a Kairo.exe that no longer exists is repointed here.
+    /// </summary>
+    private void SyncAutostart()
     {
         try
         {
-            if (_autostart.IsEnabled() != enabled) { SetAutostart(enabled); }
+            var enabled = _autostart.IsEnabled();
+            if (enabled && _autostart.GetTargetPath() is { } target && !File.Exists(target)) { SetAutostart(true); }
+            if (_runtime!.Settings.Current.General.StartWithWindows != enabled)
+            {
+                _runtime.Settings.Update(s => s.General.StartWithWindows = enabled);
+            }
         }
         catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
         {

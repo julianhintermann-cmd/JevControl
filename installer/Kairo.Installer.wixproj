@@ -1,0 +1,53 @@
+<Project Sdk="WixToolset.Sdk/5.0.2">
+  <!--
+    Kairo per-user MSI (WiX Toolset v5.0.2).
+
+    Not part of Kairo.sln on purpose: build it with installer/build.ps1, which publishes the app first.
+
+    Inputs (MSBuild properties):
+      ProductVersion  MSI ProductVersion, numeric major.minor.build (default 1.0.0)
+      PublishDir      folder with the complete publish output that is harvested into the MSI
+                      (default ..\artifacts\publish\Kairo\)
+
+    Output: Kairo-<ProductVersion>-x64.msi
+  -->
+  <PropertyGroup>
+    <ProductVersion Condition=" '$(ProductVersion)' == '' ">1.0.0</ProductVersion>
+    <PublishDir Condition=" '$(PublishDir)' == '' ">..\artifacts\publish\Kairo\</PublishDir>
+    <!-- Absolute path with a trailing directory separator; the .wxs files append file names directly. -->
+    <KairoPublishDir>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(PublishDir)'))</KairoPublishDir>
+
+    <OutputType>Package</OutputType>
+    <OutputName>Kairo-$(ProductVersion)-x64</OutputName>
+    <InstallerPlatform>x64</InstallerPlatform>
+
+    <!-- German WixUI strings from WixToolset.UI.wixext. No custom .wxl is used, so the MSI is written
+         directly to the output folder (a .wxl would move it into a de-DE\ subfolder). -->
+    <Cultures>de-DE</Cultures>
+
+    <DefineConstants>$(DefineConstants);ProductVersion=$(ProductVersion);PublishDir=$(KairoPublishDir)</DefineConstants>
+
+    <!--
+      Per-user package installed below %LOCALAPPDATA%. These ICEs flag per-user/profile patterns that
+      are intended here:
+        ICE38  components in the user profile should use an HKCU KeyPath (harvested files use their file as KeyPath)
+        ICE64  profile directories should be listed in RemoveFile (harvested subfolders are removed by MSI when empty)
+        ICE91  files installed to a per-user folder in a package that could be installed per-machine
+        ICE57  per-user and per-machine data in the same component
+        ICE61  AllowSameVersionUpgrades lets a rebuild with the same version replace the installed one
+    -->
+    <SuppressIces>ICE38;ICE64;ICE91;ICE57;ICE61</SuppressIces>
+
+    <!-- Code signing is intentionally not configured here; CI signs the MSI afterwards when a certificate is available. -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext" Version="5.0.2" />
+    <PackageReference Include="WixToolset.Util.wixext" Version="5.0.2" />
+  </ItemGroup>
+
+  <Target Name="KairoCheckPublishDir" BeforeTargets="CoreCompile">
+    <Error Condition=" !Exists('$(KairoPublishDir)Kairo.exe') "
+           Text="Kairo.exe was not found in the publish folder '$(KairoPublishDir)'. Run installer\build.ps1 (or pass -p:PublishDir=...)." />
+  </Target>
+</Project>

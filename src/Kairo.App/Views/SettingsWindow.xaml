@@ -189,7 +189,7 @@
             <Border Style="{StaticResource Kairo.SettingRow}">
               <DockPanel>
                 <TextBlock Text="&#xE8FD;" Style="{StaticResource RowIcon}" />
-                <ComboBox DockPanel.Dock="Right" Width="320" IsEditable="True" ItemsSource="{Binding PlannerModels}" Text="{Binding Model.Models.PlannerModel, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Planungsmodell" />
+                <ComboBox DockPanel.Dock="Right" VerticalAlignment="Center" Width="320" IsEditable="True" ItemsSource="{Binding PlannerModels}" Text="{Binding Model.Models.PlannerModel, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Planungsmodell" />
                 <StackPanel VerticalAlignment="Center">
                   <TextBlock Text="Planungsmodell" Style="{StaticResource RowTitle}" />
                   <TextBlock Text="Generatives Modell, das deine Anweisung versteht und den Aufgabenplan erstellt." Style="{StaticResource RowDescription}" />
@@ -199,7 +199,7 @@
             <Border Style="{StaticResource Kairo.SettingRow}">
               <DockPanel>
                 <TextBlock Text="&#xE945;" Style="{StaticResource RowIcon}" />
-                <ComboBox DockPanel.Dock="Right" Width="320" IsEditable="True" ItemsSource="{Binding DecisionModels}" Text="{Binding Model.Models.DecisionModel, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Entscheidungsmodell" />
+                <ComboBox DockPanel.Dock="Right" VerticalAlignment="Center" Width="320" IsEditable="True" ItemsSource="{Binding DecisionModels}" Text="{Binding Model.Models.DecisionModel, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Entscheidungsmodell" />
                 <StackPanel VerticalAlignment="Center">
                   <TextBlock Text="Entscheidungsmodell (Jev)" Style="{StaticResource RowTitle}" />
                   <TextBlock Text="TypeSafe Jev über die OpenRouter Decisions API: wählt Zielelemente, prüft Risiken und Ergebnisse in wenigen hundert Millisekunden." Style="{StaticResource RowDescription}" />
@@ -209,7 +209,7 @@
             <Border Style="{StaticResource Kairo.SettingRow}">
               <DockPanel>
                 <TextBlock Text="&#xE722;" Style="{StaticResource RowIcon}" />
-                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center" Orientation="Horizontal">
                   <ComboBox Width="320" IsEditable="True" ItemsSource="{Binding VisionModels}" Text="{Binding Model.Models.VisionModel, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Vision-Modell" />
                   <CheckBox Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Models.VisionEnabled}" Margin="16,0,0,0" />
                 </StackPanel>
@@ -222,7 +222,7 @@
             <Border Style="{StaticResource Kairo.SettingRow}">
               <DockPanel>
                 <TextBlock Text="&#xE9D9;" Style="{StaticResource RowIcon}" />
-                <ComboBox DockPanel.Dock="Right" Width="160" ItemsSource="{Binding ReasoningOptions}" SelectedItem="{Binding ReasoningEffort}" />
+                <ComboBox DockPanel.Dock="Right" VerticalAlignment="Center" Width="160" ItemsSource="{Binding ReasoningOptions}" SelectedItem="{Binding ReasoningEffort}" />
                 <StackPanel VerticalAlignment="Center">
                   <TextBlock Text="Planungstiefe (Reasoning)" Style="{StaticResource RowTitle}" />
                   <TextBlock Text="Höhere Stufen denken gründlicher, sind aber langsamer und teurer." Style="{StaticResource RowDescription}" />
@@ -268,7 +268,7 @@
               <StackPanel>
                 <DockPanel>
                   <TextBlock Text="&#xE774;" Style="{StaticResource RowIcon}" />
-                  <CheckBox DockPanel.Dock="Right" Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Control.UseBrowserExtension}" />
+                  <CheckBox DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Control.UseBrowserExtension}" />
                   <StackPanel VerticalAlignment="Center">
                     <TextBlock Text="Browser-Erweiterung verwenden (Chrome, Edge)" Style="{StaticResource RowTitle}" />
                     <TextBlock Text="{Binding BrowserStatus}" Style="{StaticResource RowDescription}" />
@@ -283,7 +283,7 @@
             <Border Style="{StaticResource Kairo.SettingRow}">
               <DockPanel>
                 <TextBlock Text="&#xE9F5;" Style="{StaticResource RowIcon}" />
-                <CheckBox DockPanel.Dock="Right" Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Control.PrefetchOnOverlayOpen}" />
+                <CheckBox DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Control.PrefetchOnOverlayOpen}" />
                 <StackPanel VerticalAlignment="Center">
                   <TextBlock Text="Fenster vorab analysieren" Style="{StaticResource RowTitle}" />
                   <TextBlock Text="Liest die Oberfläche bereits beim Öffnen des Eingabefelds – die Aufgabe startet dadurch schneller. Es werden dabei keine Daten versendet." Style="{StaticResource RowDescription}" />
@@ -293,7 +293,7 @@
             <Border Style="{StaticResource Kairo.SettingRow}">
               <DockPanel>
                 <TextBlock Text="&#xE9D2;" Style="{StaticResource RowIcon}" />
-                <TextBox DockPanel.Dock="Right" Style="{StaticResource NumberBox}" Text="{Binding Model.Control.MaxActionsPerTask}" />
+                <TextBox DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource NumberBox}" Text="{Binding Model.Control.MaxActionsPerTask}" />
                 <StackPanel VerticalAlignment="Center">
                   <TextBlock Text="Maximale Aktionen pro Aufgabe" Style="{StaticResource RowTitle}" />
                   <TextBlock Text="Schutz vor Endlosschleifen." Style="{StaticResource RowDescription}" />
@@ -303,7 +303,7 @@
             <Border Style="{StaticResource Kairo.SettingRow}">
               <DockPanel>
                 <TextBlock Text="&#xE8FD;" Style="{StaticResource RowIcon}" />
-                <TextBox DockPanel.Dock="Right" Style="{StaticResource NumberBox}" Text="{Binding Model.Control.MaxPlanningRounds}" />
+                <TextBox DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource NumberBox}" Text="{Binding Model.Control.MaxPlanningRounds}" />
                 <StackPanel VerticalAlignment="Center">
                   <TextBlock Text="Maximale Planungsrunden" Style="{StaticResource RowTitle}" />
                   <TextBlock Text="Wie oft Kairo nach Bildschirmwechseln neu planen darf." Style="{StaticResource RowDescription}" />
@@ -313,7 +313,7 @@
             <Border Style="{StaticResource Kairo.SettingRow}">
               <DockPanel>
                 <TextBlock Text="&#xE72C;" Style="{StaticResource RowIcon}" />
-                <TextBox DockPanel.Dock="Right" Style="{StaticResource NumberBox}" Text="{Binding Model.Control.MaxRetriesPerStep}" />
+                <TextBox DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource NumberBox}" Text="{Binding Model.Control.MaxRetriesPerStep}" />
                 <StackPanel VerticalAlignment="Center">
                   <TextBlock Text="Korrekturversuche pro Schritt" Style="{StaticResource RowTitle}" />
                   <TextBlock Text="Schlägt die Überprüfung fehl, wiederholt Kairo den Schritt gezielt mit simulierter Eingabe." Style="{StaticResource RowDescription}" />
@@ -323,7 +323,7 @@
             <Border Style="{StaticResource Kairo.SettingRow}">
               <DockPanel>
                 <TextBlock Text="&#xE765;" Style="{StaticResource RowIcon}" />
-                <TextBox DockPanel.Dock="Right" Style="{StaticResource NumberBox}" Text="{Binding Model.Control.TypingDelayMs}" />
+                <TextBox DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource NumberBox}" Text="{Binding Model.Control.TypingDelayMs}" />
                 <StackPanel VerticalAlignment="Center">
                   <TextBlock Text="Verzögerung zwischen Tastenanschlägen (ms)" Style="{StaticResource RowTitle}" />
                   <TextBlock Text="0 = so schnell wie möglich. Nur für Anwendungen erhöhen, die schnelle Eingaben verlieren." Style="{StaticResource RowDescription}" />
@@ -333,7 +333,7 @@
             <Border Style="{StaticResource Kairo.SettingRow}">
               <DockPanel>
                 <TextBlock Text="&#xE8FD;" Style="{StaticResource RowIcon}" />
-                <TextBox DockPanel.Dock="Right" Style="{StaticResource NumberBox}" Text="{Binding Model.Control.MaxSnapshotElements}" />
+                <TextBox DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource NumberBox}" Text="{Binding Model.Control.MaxSnapshotElements}" />
                 <StackPanel VerticalAlignment="Center">
                   <TextBlock Text="Maximale Bedienelemente pro Analyse" Style="{StaticResource RowTitle}" />
                   <TextBlock Text="Begrenzt die Datenmenge, die an das Planungsmodell geht." Style="{StaticResource RowDescription}" />
@@ -369,7 +369,7 @@
             <Border Style="{StaticResource Kairo.SettingRow}">
               <DockPanel>
                 <TextBlock Text="&#xE945;" Style="{StaticResource RowIcon}" />
-                <CheckBox DockPanel.Dock="Right" Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Security.UseJevRiskCheck}" />
+                <CheckBox DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Security.UseJevRiskCheck}" />
                 <StackPanel VerticalAlignment="Center">
                   <TextBlock Text="Risiko-Zweitprüfung mit Jev" Style="{StaticResource RowTitle}" />
                   <TextBlock Text="Mehrdeutige Schaltflächen („OK“, „Weiter“) werden zusätzlich von Jev bewertet." Style="{StaticResource RowDescription}" />
@@ -379,7 +379,7 @@
             <Border Style="{StaticResource Kairo.SettingRow}">
               <DockPanel>
                 <TextBlock Text="&#xE7BA;" Style="{StaticResource RowIcon}" />
-                <CheckBox DockPanel.Dock="Right" Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Security.DetectPromptInjection}" />
+                <CheckBox DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Security.DetectPromptInjection}" />
                 <StackPanel VerticalAlignment="Center">
                   <TextBlock Text="Versteckte Anweisungen erkennen" Style="{StaticResource RowTitle}" />
                   <TextBlock Text="Webseiten und Dokumente mit Anweisungen an KI-Systeme verschärfen die Freigaberegeln für den Rest der Aufgabe." Style="{StaticResource RowDescription}" />
@@ -389,7 +389,7 @@
             <Border Style="{StaticResource Kairo.SettingRow}">
               <DockPanel>
                 <TextBlock Text="&#xE74D;" Style="{StaticResource RowIcon}" />
-                <TextBox DockPanel.Dock="Right" Style="{StaticResource NumberBox}" Text="{Binding Model.Security.MaxFilesPerDelete}" />
+                <TextBox DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource NumberBox}" Text="{Binding Model.Security.MaxFilesPerDelete}" />
                 <StackPanel VerticalAlignment="Center">
                   <TextBlock Text="Maximale Dateien pro Löschvorgang" Style="{StaticResource RowTitle}" />
                   <TextBlock Text="Größere Löschungen sind gesperrt. Gelöscht wird immer nur in den Papierkorb." Style="{StaticResource RowDescription}" />
@@ -436,7 +436,7 @@
                   <ItemsControl.ItemTemplate>
                     <DataTemplate>
                       <DockPanel Margin="0,2">
-                        <Button DockPanel.Dock="Right" Style="{StaticResource Kairo.Button.Icon}" c:Ui.Icon="&#xE74D;" ToolTip="Entfernen"
+                        <Button DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource Kairo.Button.Icon}" c:Ui.Icon="&#xE74D;" ToolTip="Entfernen"
                                 Command="{Binding DataContext.RemoveReadRootCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
                         <TextBlock Text="{Binding}" Style="{StaticResource Kairo.Text.Caption}" Foreground="{DynamicResource Kairo.Text}" VerticalAlignment="Center" />
                       </DockPanel>
@@ -449,7 +449,7 @@
                   <ItemsControl.ItemTemplate>
                     <DataTemplate>
                       <DockPanel Margin="0,2">
-                        <Button DockPanel.Dock="Right" Style="{StaticResource Kairo.Button.Icon}" c:Ui.Icon="&#xE74D;" ToolTip="Entfernen"
+                        <Button DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource Kairo.Button.Icon}" c:Ui.Icon="&#xE74D;" ToolTip="Entfernen"
                                 Command="{Binding DataContext.RemoveWriteRootCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
                         <TextBlock Text="{Binding}" Style="{StaticResource Kairo.Text.Caption}" Foreground="{DynamicResource Kairo.Text}" VerticalAlignment="Center" />
                       </DockPanel>
@@ -490,7 +490,7 @@
             <Border Style="{StaticResource Kairo.SettingRow}">
               <DockPanel>
                 <TextBlock Text="&#xE72E;" Style="{StaticResource RowIcon}" />
-                <CheckBox DockPanel.Dock="Right" Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Privacy.MaskPasswordFieldsInScreenshots}" />
+                <CheckBox DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Privacy.MaskPasswordFieldsInScreenshots}" />
                 <StackPanel VerticalAlignment="Center">
                   <TextBlock Text="Passwortfelder in Screenshots schwärzen" Style="{StaticResource RowTitle}" />
                 </StackPanel>
@@ -499,7 +499,7 @@
             <Border Style="{StaticResource Kairo.SettingRow}">
               <DockPanel>
                 <TextBlock Text="&#xE8EC;" Style="{StaticResource RowIcon}" />
-                <CheckBox DockPanel.Dock="Right" Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Privacy.MaskSensitiveNumbers}" />
+                <CheckBox DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Privacy.MaskSensitiveNumbers}" />
                 <StackPanel VerticalAlignment="Center">
                   <TextBlock Text="Kartennummern und IBANs schützen" Style="{StaticResource RowTitle}" />
                   <TextBlock Text="Das Modell sieht nur Platzhalter; der echte Wert wird lokal eingesetzt." Style="{StaticResource RowDescription}" />
@@ -509,7 +509,7 @@
             <Border Style="{StaticResource Kairo.SettingRow}">
               <DockPanel>
                 <TextBlock Text="&#xE8A5;" Style="{StaticResource RowIcon}" />
-                <TextBox DockPanel.Dock="Right" Style="{StaticResource NumberBox}" Text="{Binding Model.Privacy.MaxFileCharsToModel}" />
+                <TextBox DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource NumberBox}" Text="{Binding Model.Privacy.MaxFileCharsToModel}" />
                 <StackPanel VerticalAlignment="Center">
                   <TextBlock Text="Maximale Zeichen pro Datei an das Modell" Style="{StaticResource RowTitle}" />
                   <TextBlock Text="Bei größeren Dateien wählt Kairo lokal nur die relevanten Abschnitte aus." Style="{StaticResource RowDescription}" />
@@ -520,18 +520,18 @@
               <StackPanel>
                 <DockPanel>
                   <TextBlock Text="&#xE81C;" Style="{StaticResource RowIcon}" />
-                  <CheckBox DockPanel.Dock="Right" Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Privacy.SaveTaskHistory}" />
+                  <CheckBox DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Privacy.SaveTaskHistory}" />
                   <StackPanel VerticalAlignment="Center">
                     <TextBlock Text="Aufgabenverlauf speichern" Style="{StaticResource RowTitle}" />
                     <TextBlock Text="Lokal, mit DPAPI verschlüsselt. Enthält keine Feldwerte und keine Screenshots." Style="{StaticResource RowDescription}" />
                   </StackPanel>
                 </DockPanel>
                 <DockPanel Margin="34,10,0,0">
-                  <CheckBox DockPanel.Dock="Right" Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Privacy.StoreInstructionsInHistory}" />
+                  <CheckBox DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Privacy.StoreInstructionsInHistory}" />
                   <TextBlock Text="Anweisungstexte im Verlauf speichern" Style="{StaticResource RowDescription}" VerticalAlignment="Center" />
                 </DockPanel>
                 <DockPanel Margin="34,10,0,0">
-                  <TextBox DockPanel.Dock="Right" Style="{StaticResource NumberBox}" Text="{Binding Model.Privacy.HistoryRetentionDays}" />
+                  <TextBox DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource NumberBox}" Text="{Binding Model.Privacy.HistoryRetentionDays}" />
                   <TextBlock Text="Aufbewahrung in Tagen" Style="{StaticResource RowDescription}" VerticalAlignment="Center" />
                 </DockPanel>
               </StackPanel>
@@ -574,7 +574,7 @@
             <Border Style="{StaticResource Kairo.SettingRow}">
               <DockPanel>
                 <TextBlock Text="&#xE7F4;" Style="{StaticResource RowIcon}" />
-                <CheckBox DockPanel.Dock="Right" Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Appearance.UseMica}" />
+                <CheckBox DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Appearance.UseMica}" />
                 <StackPanel VerticalAlignment="Center">
                   <TextBlock Text="Mica- und Acryl-Effekte" Style="{StaticResource RowTitle}" />
                   <TextBlock Text="Transparente Fensterhintergründe (Windows 11 22H2 oder neuer)." Style="{StaticResource RowDescription}" />
@@ -584,7 +584,7 @@
             <Border Style="{StaticResource Kairo.SettingRow}">
               <DockPanel>
                 <TextBlock Text="&#xE916;" Style="{StaticResource RowIcon}" />
-                <CheckBox DockPanel.Dock="Right" Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Appearance.Animations}" />
+                <CheckBox DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Model.Appearance.Animations}" />
                 <StackPanel VerticalAlignment="Center">
                   <TextBlock Text="Animationen" Style="{StaticResource RowTitle}" />
                 </StackPanel>
@@ -598,7 +598,7 @@
             <Border Style="{StaticResource Kairo.SettingRow}">
               <DockPanel>
                 <TextBlock Text="&#xE765;" Style="{StaticResource RowIcon}" />
-                <c:HotkeyBox DockPanel.Dock="Right" Width="220" Hotkey="{Binding OverlayHotkey}" AutomationProperties.Name="Tastenkombination für das Eingabefeld" />
+                <c:HotkeyBox DockPanel.Dock="Right" VerticalAlignment="Center" Width="220" Hotkey="{Binding OverlayHotkey}" AutomationProperties.Name="Tastenkombination für das Eingabefeld" />
                 <StackPanel VerticalAlignment="Center">
                   <TextBlock Text="Kairo öffnen" Style="{StaticResource RowTitle}" />
                   <TextBlock Text="Klicke in das Feld und drücke die neue Kombination." Style="{StaticResource RowDescription}" />
@@ -608,7 +608,7 @@
             <Border Style="{StaticResource Kairo.SettingRow}">
               <DockPanel>
                 <TextBlock Text="&#xE71A;" Style="{StaticResource RowIcon}" />
-                <c:HotkeyBox DockPanel.Dock="Right" Width="220" Hotkey="{Binding StopHotkey}" AutomationProperties.Name="Tastenkombination für den Nothalt" />
+                <c:HotkeyBox DockPanel.Dock="Right" VerticalAlignment="Center" Width="220" Hotkey="{Binding StopHotkey}" AutomationProperties.Name="Tastenkombination für den Nothalt" />
                 <StackPanel VerticalAlignment="Center">
                   <TextBlock Text="Laufende Aufgabe sofort stoppen" Style="{StaticResource RowTitle}" />
                   <TextBlock Text="Funktioniert auch, wenn das Kairo-Fenster verborgen ist." Style="{StaticResource RowDescription}" />

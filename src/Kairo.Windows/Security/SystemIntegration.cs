@@ -19,6 +19,21 @@ public sealed class AutostartManager
         return key?.GetValue(ValueName) is string;
     }
 
+    /// <summary>The executable the Run value points to (without arguments), or null.</summary>
+    public string? GetTargetPath()
+    {
+        using var key = Registry.CurrentUser.OpenSubKey(RunKey);
+        if (key?.GetValue(ValueName) is not string command) { return null; }
+        command = command.Trim();
+        if (command.StartsWith('"'))
+        {
+            var end = command.IndexOf('"', 1);
+            return end > 1 ? command[1..end] : null;
+        }
+        var space = command.IndexOf(' ');
+        return space > 0 ? command[..space] : command;
+    }
+
     public void SetEnabled(bool enabled, string executablePath)
     {
         using var key = Registry.CurrentUser.CreateSubKey(RunKey, writable: true);

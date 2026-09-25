@@ -1,0 +1,16 @@
+<Project>
+  <!--
+    Isolates the WiX installer project from the repository-wide Directory.Build.props.
+
+    The WiX SDK imports Microsoft.Common.props, which would otherwise pick up ../Directory.Build.props.
+    That file enables NuGet Central Package Management (ManagePackageVersionsCentrally) and sets
+    .NET-specific properties (TFMs, versions, nullable, ...). The WiX extensions are referenced with
+    explicit versions in Kairo.Installer.wixproj and are not part of ../Directory.Packages.props, so
+    Central Package Management must stay off for this project.
+
+    MSBuild only imports the nearest Directory.Build.props, so this file stops the upward search.
+  -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>

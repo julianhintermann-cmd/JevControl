@@ -207,7 +207,9 @@ public static class CommandLineActions
             var answer = MessageBox.Show(
                 "Möchtest du auch deine Kairo-Einstellungen, den Aufgabenverlauf und den verschlüsselt gespeicherten OpenRouter-API-Schlüssel sicher löschen?\n\n" +
                 "„Ja“ überschreibt und löscht die Daten. „Nein“ behält sie für eine spätere Neuinstallation.",
-                "Kairo deinstallieren", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No);
+                "Kairo deinstallieren", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No,
+                // Started by the installer without an owner window: make sure the question is not hidden behind the setup dialog.
+                MessageBoxOptions.DefaultDesktopOnly);
             removeData = answer == MessageBoxResult.Yes;
         }
 

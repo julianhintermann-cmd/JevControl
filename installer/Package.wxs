@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Kairo – per-user MSI (WiX Toolset v5).
+
+  Preprocessor variables (set by Kairo.Installer.wixproj via DefineConstants):
+    ProductVersion  numeric MSI version, e.g. 1.2.3
+    PublishDir      absolute path of the publish folder, WITH trailing directory separator
+
+  Public properties (see README.md):
+    INSTALLDESKTOPSHORTCUT  "1" = desktop shortcut (default on first install), "0" = none
+    AUTOSTART               "1" = start with Windows via HKCU\...\Run (default "0")
+    REMOVEUSERDATA          "1" = uninstall also deletes settings/history/API key (passed to Kairo.exe)
+    INSTALLFOLDER           install location (default %LOCALAPPDATA%\Programs\Kairo\)
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+
+  <Package Name="Kairo"
+           Manufacturer="Kairo"
+           Version="$(var.ProductVersion)"
+           UpgradeCode="08CD4C8F-177F-492B-AB2C-9F384DB4ECAA"
+           Scope="perUser"
+           Language="1031"
+           Codepage="1252"
+           Compressed="yes">
+
+    <MajorUpgrade AllowSameVersionUpgrades="yes"
+                  DowngradeErrorMessage="Eine neuere Version von [ProductName] ist bereits installiert. Die Installation wird abgebrochen. Deinstallieren Sie zuerst die neuere Version, wenn Sie diese Version installieren möchten." />
+
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- ===================================================================== Add/Remove Programs -->
+    <Icon Id="KairoIcon.ico" SourceFile="$(var.PublishDir)Assets\kairo.ico" />
+    <Property Id="ARPPRODUCTICON" Value="KairoIcon.ico" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/julianhintermann-cmd/jevcontrol" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/julianhintermann-cmd/jevcontrol" />
+    <SetProperty Id="ARPINSTALLLOCATION" Value="[INSTALLFOLDER]" After="CostFinalize" Sequence="execute" />
+
+    <!-- ===================================================================== Public options -->
+    <!-- No Property-table defaults on purpose: an MSI checkbox is checked for ANY non-empty value
+         (also "0"). Defaults are applied by the SetProperty actions below. -->
+    <Property Id="INSTALLDESKTOPSHORTCUT" Secure="yes" />
+    <Property Id="AUTOSTART" Secure="yes" />
+    <Property Id="REMOVEUSERDATA" Secure="yes" />
+
+    <!-- State of a previous installation (major upgrade / repair). -->
+    <Property Id="KAIRO_PREV_INSTALLFOLDER">
+      <RegistrySearch Id="KairoPrevInstallFolderSearch" Root="HKCU" Key="Software\Kairo\Installer" Name="InstallFolder" Type="raw" />
+    </Property>
+    <Property Id="KAIRO_PREV_DESKTOPSHORTCUT">
+      <RegistrySearch Id="KairoPrevDesktopShortcutSearch" Root="HKCU" Key="Software\Kairo\Installer" Name="DesktopShortcut" Type="raw" />
+    </Property>
+    <!-- The Run value itself (the app can switch autostart on/off in its settings). -->
+    <Property Id="KAIRO_PREV_AUTOSTART">
+      <RegistrySearch Id="KairoPrevAutostartSearch" Root="HKCU" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="Kairo" Type="raw" />
+    </Property>
+
+    <!--
+      Option defaults. Sequence="first": runs in the UI sequence when the wizard is shown (the user's
+      checkbox choices are then passed to the execute sequence unchanged) or in the execute sequence
+      for silent/basic installs. Values given on the command line always win.
+    -->
+    <SetProperty Id="INSTALLFOLDER" Action="KairoRestoreInstallFolder" Value="[KAIRO_PREV_INSTALLFOLDER]"
+                 After="AppSearch" Sequence="first"
+                 Condition="KAIRO_PREV_INSTALLFOLDER AND NOT INSTALLFOLDER" />
+    <SetProperty Id="INSTALLDESKTOPSHORTCUT" Action="KairoDefaultDesktopShortcut" Value="1"
+                 After="KairoRestoreInstallFolder" Sequence="first"
+                 Condition="NOT INSTALLDESKTOPSHORTCUT AND (NOT KAIRO_PREV_INSTALLFOLDER OR KAIRO_PREV_DESKTOPSHORTCUT = &quot;1&quot;)" />
+    <SetProperty Id="AUTOSTART" Action="KairoDefaultAutostart" Value="1"
+                 After="KairoDefaultDesktopShortcut" Sequence="first"
+                 Condition="NOT AUTOSTART AND KAIRO_PREV_AUTOSTART" />
+    <!-- Normalize "0" (or anything but "1") to empty, so the checkboxes show the real state. -->
+    <SetProperty Id="INSTALLDESKTOPSHORTCUT" Action="KairoNormalizeDesktopShortcut" Value=""
+                 After="KairoDefaultAutostart" Sequence="first"
+                 Condition="INSTALLDESKTOPSHORTCUT AND INSTALLDESKTOPSHORTCUT &lt;&gt; &quot;1&quot;" />
+    <SetProperty Id="AUTOSTART" Action="KairoNormalizeAutostart" Value=""
+                 After="KairoNormalizeDesktopShortcut" Sequence="first"
+                 Condition="AUTOSTART AND AUTOSTART &lt;&gt; &quot;1&quot;" />
+
+    <!-- ===================================================================== Directories -->
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="KairoProgramsFolder" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="Kairo" />
+      </Directory>
+    </StandardDirectory>
+
+    <!-- ===================================================================== Features -->
+    <Feature Id="Main" Title="Kairo" Level="1" AllowAbsent="no" AllowAdvertise="no">
+      <ComponentGroupRef Id="KairoPayload" />
+      <ComponentGroupRef Id="KairoIntegration" />
+    </Feature>
+
+    <!-- ===================================================================== UI -->
+    <UIRef Id="WixUI_KairoInstallDir" />
+    <WixVariable Id="WixUILicenseRtf" Value="$(sys.SOURCEFILEDIR)License.rtf" />
+
+    <!-- ===================================================================== Close running Kairo -->
+    <!-- WM_CLOSE (then WM_QUERYENDSESSION/WM_ENDSESSION) to all top-level windows of Kairo.exe, wait up to
+         10 s, then terminate what is still running. Kairo.BrowserHost.exe (started by Chrome/Edge, no
+         windows) is terminated directly; the extension reconnects on its own. -->
+    <util:CloseApplication Id="CloseKairo" Target="Kairo.exe"
+                           CloseMessage="yes" EndSessionMessage="yes"
+                           RebootPrompt="no" TerminateProcess="1" Timeout="10" />
+    <util:CloseApplication Id="CloseKairoBrowserHost" Target="Kairo.BrowserHost.exe"
+                           CloseMessage="no"
+                           RebootPrompt="no" TerminateProcess="1" />
+
+    <!-- ===================================================================== Uninstall cleanup -->
+    <!-- Runs "Kairo.exe (dash-dash)uninstall-cleanup" before RemoveFiles on a real uninstall (not during
+         a major upgrade). Extra arguments: "(dash-dash)remove-data" when REMOVEUSERDATA=1 and
+         "(dash-dash)quiet" only for fully silent uninstalls (UILevel 2, msiexec /qn). Uninstalling from
+         Windows Settings runs with basic UI (UILevel 3), so the user still gets the choice: Kairo.exe asks
+         whether to keep or securely delete settings/history/API key unless quiet; when quiet it keeps the
+         data unless remove-data is given. (XML comments must not contain two consecutive hyphens.) -->
+    <SetProperty Id="KairoCleanupDataArg" Value="--remove-data"
+                 Before="KairoUninstallCleanup" Sequence="execute"
+                 Condition="REMOVEUSERDATA = &quot;1&quot;" />
+    <SetProperty Id="KairoCleanupQuietArg" Value="--quiet"
+                 Before="KairoUninstallCleanup" Sequence="execute"
+                 Condition="UILevel = 2" />
+    <CustomAction Id="KairoUninstallCleanup"
+                  Directory="INSTALLFOLDER"
+                  ExeCommand="&quot;[INSTALLFOLDER]Kairo.exe&quot; --uninstall-cleanup [KairoCleanupDataArg] [KairoCleanupQuietArg]"
+                  Execute="deferred" Impersonate="yes" Return="ignore" />
+
+    <InstallExecuteSequence>
+      <!-- Util schedules CloseApplications before InstallFiles, which is after RemoveFiles. Move it to the
+           start of the install script so Kairo is closed/terminated before the cleanup action, RemoveFiles
+           and InstallFiles (otherwise locked files would require a reboot). -->
+      <Custom Action="override Wix4CloseApplications_X64" After="InstallInitialize" Condition="VersionNT &gt; 400" />
+      <Custom Action="KairoUninstallCleanup" Before="RemoveFiles"
+              Condition="REMOVE~=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
+    </InstallExecuteSequence>
+
+    <!-- ===================================================================== "Kairo jetzt starten" -->
+    <!-- WixShellExec (util extension) starts [WixShellExecTarget] as the user. The property is set by
+         the ExitDialog Finish button right before this action runs (see KairoUI.wxs). -->
+    <CustomAction Id="KairoLaunchApp" BinaryRef="Wix4UtilCA_X64" DllEntry="WixShellExec"
+                  Impersonate="yes" Return="ignore" />
+  </Package>
+
+  <!-- ======================================================================= Payload -->
+  <Fragment>
+    <!-- Everything in the publish folder: Kairo.exe, Kairo.BrowserHost.exe, runtime, com.kairo.bridge.json,
+         Assets\, extension\ ... One component per file (file KeyPath), subfolders are created automatically. -->
+    <ComponentGroup Id="KairoPayload" Directory="INSTALLFOLDER">
+      <Files Include="$(var.PublishDir)**" />
+    </ComponentGroup>
+  </Fragment>
+
+  <!-- ======================================================================= Shortcuts & registry -->
+  <Fragment>
+    <ComponentGroup Id="KairoIntegration">
+
+      <!-- Always: install location, browser native messaging host (Chrome + Edge), folder cleanup. -->
+      <Component Id="KairoRegistration" Directory="INSTALLFOLDER" Guid="ED6BD5C0-BCC9-4416-846F-56089AB6E492">
+        <RegistryKey Root="HKCU" Key="Software\Kairo\Installer" ForceDeleteOnUninstall="yes">
+          <RegistryValue Name="InstallFolder" Type="string" Value="[INSTALLFOLDER]" KeyPath="yes" />
+        </RegistryKey>
+        <RegistryKey Root="HKCU" Key="Software\Google\Chrome\NativeMessagingHosts\com.kairo.bridge" ForceDeleteOnUninstall="yes">
+          <RegistryValue Type="string" Value="[INSTALLFOLDER]com.kairo.bridge.json" />
+        </RegistryKey>
+        <RegistryKey Root="HKCU" Key="Software\Microsoft\Edge\NativeMessagingHosts\com.kairo.bridge" ForceDeleteOnUninstall="yes">
+          <RegistryValue Type="string" Value="[INSTALLFOLDER]com.kairo.bridge.json" />
+        </RegistryKey>
+        <RemoveFolder Id="RemoveKairoInstallFolder" Directory="INSTALLFOLDER" On="uninstall" />
+        <RemoveFolder Id="RemoveKairoProgramsFolder" Directory="KairoProgramsFolder" On="uninstall" />
+      </Component>
+
+      <!-- Always: Start menu shortcut %APPDATA%\Microsoft\Windows\Start Menu\Programs\Kairo.lnk
+           (non-advertised; without an Icon attribute the shell shows the icon embedded in Kairo.exe). -->
+      <Component Id="KairoStartMenuShortcut" Directory="ProgramMenuFolder" Guid="AFEB14C2-58EF-4E10-83F2-83AA5FAE354F">
+        <Shortcut Id="KairoStartMenuShortcut"
+                  Name="Kairo"
+                  Description="KI-Computersteuerung für Windows"
+                  Target="[INSTALLFOLDER]Kairo.exe"
+                  WorkingDirectory="INSTALLFOLDER" />
+        <RegistryValue Root="HKCU" Key="Software\Kairo\Installer" Name="StartMenuShortcut" Type="string" Value="1" KeyPath="yes" />
+      </Component>
+
+      <!-- Optional: desktop shortcut. -->
+      <Component Id="KairoDesktopShortcut" Directory="DesktopFolder" Guid="D48E06E3-A0C7-49D6-9CEF-D57CCF200CE6"
+                 Condition="INSTALLDESKTOPSHORTCUT = &quot;1&quot;">
+        <Shortcut Id="KairoDesktopShortcut"
+                  Name="Kairo"
+                  Description="KI-Computersteuerung für Windows"
+                  Target="[INSTALLFOLDER]Kairo.exe"
+                  WorkingDirectory="INSTALLFOLDER" />
+        <RegistryValue Root="HKCU" Key="Software\Kairo\Installer" Name="DesktopShortcut" Type="string" Value="1" KeyPath="yes" />
+      </Component>
+
+      <!-- Optional: start with Windows (in the background). -->
+      <Component Id="KairoAutostart" Directory="INSTALLFOLDER" Guid="7EF05105-A424-47C1-AF7B-A76250E810CA"
+                 Condition="AUTOSTART = &quot;1&quot;">
+        <RegistryValue Root="HKCU" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="Kairo" Type="string"
+                       Value="&quot;[INSTALLFOLDER]Kairo.exe&quot; --background" />
+        <RegistryValue Root="HKCU" Key="Software\Kairo\Installer" Name="Autostart" Type="string" Value="1" KeyPath="yes" />
+      </Component>
+
+    </ComponentGroup>
+  </Fragment>
+</Wix>
