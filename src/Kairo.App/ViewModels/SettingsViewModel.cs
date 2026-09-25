@@ -57,6 +57,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     public SettingsViewModel(IAppHost host)
     {
         _host = host;
+        History.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasHistory));
         _saveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(350) };
         _saveTimer.Tick += (_, _) =>
         {
@@ -113,6 +114,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     public ObservableCollection<string> ReadRoots { get; } = [];
     public ObservableCollection<string> WriteRoots { get; } = [];
     public ObservableCollection<HistoryItem> History { get; } = [];
+    public bool HasHistory => History.Count > 0;
     public ObservableCollection<string> RecentLog { get; } = [];
 
     public string Version => typeof(App).Assembly.GetName().Version?.ToString(3) ?? "1.0.0";

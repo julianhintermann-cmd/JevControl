@@ -159,12 +159,19 @@
           </Grid>
         </Border>
         <Border Style="{StaticResource Kairo.SettingRow}">
-          <CheckBox Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Autostart}">
-            <StackPanel>
-              <TextBlock Text="Mit Windows starten" Style="{StaticResource Kairo.Text.BodyStrong}" />
-              <TextBlock Text="Kairo läuft unauffällig im Infobereich und ist sofort bereit." Style="{StaticResource Kairo.Text.Caption}" />
-            </StackPanel>
-          </CheckBox>
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="36" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="&#xE7E8;" Style="{StaticResource Kairo.Text.Icon}" FontSize="18" />
+            <CheckBox Grid.Column="1" Style="{StaticResource Kairo.ToggleSwitch}" IsChecked="{Binding Autostart}">
+              <StackPanel>
+                <TextBlock Text="Mit Windows starten" Style="{StaticResource Kairo.Text.BodyStrong}" />
+                <TextBlock Text="Kairo läuft unauffällig im Infobereich und ist sofort bereit." Style="{StaticResource Kairo.Text.Caption}" />
+              </StackPanel>
+            </CheckBox>
+          </Grid>
         </Border>
         <Border Style="{StaticResource Kairo.SettingRow}">
           <Grid>
@@ -235,7 +242,8 @@
           </Ellipse>
         </StackPanel>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-          <Button Content="Zurück" Command="{Binding BackCommand}" MinWidth="100" />
+          <Button Content="Zurück" Command="{Binding BackCommand}" MinWidth="100"
+                  Visibility="{Binding IsFirstStep, Converter={StaticResource InverseBoolToVisibility}}" />
           <Button Content="{Binding NextText}" Command="{Binding NextCommand}" Style="{StaticResource Kairo.Button.Accent}" MinWidth="120" Margin="8,0,0,0" IsDefault="True" />
         </StackPanel>
       </Grid>

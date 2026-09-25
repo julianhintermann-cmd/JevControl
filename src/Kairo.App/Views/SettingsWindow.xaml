@@ -629,7 +629,17 @@
             </Grid.RowDefinitions>
             <TextBlock Text="Aufgabenverlauf" Style="{StaticResource PageTitle}" />
             <TextBlock Grid.Row="1" Text="{Binding CostSummary}" Style="{StaticResource Kairo.Text.Caption}" Margin="0,0,0,12" />
-            <ListBox Grid.Row="2" Style="{StaticResource Kairo.PlainList}" ItemsSource="{Binding History}" SelectedItem="{Binding SelectedHistory}" MaxHeight="420">
+            <Border Grid.Row="2" Style="{StaticResource Kairo.CardStyle}" Padding="24,32"
+                    Visibility="{Binding HasHistory, Converter={StaticResource InverseBoolToVisibility}}">
+              <StackPanel HorizontalAlignment="Center">
+                <TextBlock Text="&#xE81C;" Style="{StaticResource Kairo.Text.Icon}" FontSize="32" HorizontalAlignment="Center" Foreground="{DynamicResource Kairo.Text.Secondary}" />
+                <TextBlock Text="Noch keine Aufgaben" Style="{StaticResource Kairo.Text.BodyStrong}" HorizontalAlignment="Center" Margin="0,12,0,0" />
+                <TextBlock Style="{StaticResource Kairo.Text.Caption}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="420" Margin="0,4,0,0"
+                           Text="Drücke in einer beliebigen Anwendung die Tastenkombination für das Overlay und beschreibe, was Kairo erledigen soll. Hier siehst du danach Ergebnis, Dauer und Kosten jeder Aufgabe." />
+              </StackPanel>
+            </Border>
+            <ListBox Grid.Row="2" Style="{StaticResource Kairo.PlainList}" ItemsSource="{Binding History}" SelectedItem="{Binding SelectedHistory}" MaxHeight="420"
+                     Visibility="{Binding HasHistory, Converter={StaticResource BoolToVisibility}}">
               <ListBox.ItemTemplate>
                 <DataTemplate DataType="{x:Type vm:HistoryItem}">
                   <Grid>

@@ -60,11 +60,13 @@ public sealed partial class OnboardingViewModel : ObservableObject
     public event EventHandler? Completed;
 
     public bool IsLastStep => Step == 3;
+    public bool IsFirstStep => Step == 0;
     public string NextText => Step switch { 0 => "Los geht's", 3 => "Fertig", _ => "Weiter" };
 
     partial void OnStepChanged(int value)
     {
         OnPropertyChanged(nameof(IsLastStep));
+        OnPropertyChanged(nameof(IsFirstStep));
         OnPropertyChanged(nameof(NextText));
         NextCommand.NotifyCanExecuteChanged();
         BackCommand.NotifyCanExecuteChanged();
