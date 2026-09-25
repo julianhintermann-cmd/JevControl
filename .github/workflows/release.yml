@@ -3,7 +3,8 @@ name: Release
 # Manually started: builds the MSI for the given version, runs the install/uninstall test against exactly this
 # MSI, and publishes it with a SHA-256 checksum as a GitHub release (tag v<version> on the built commit).
 # The Firefox/Zen add-on (XPI) is signed by addons.mozilla.org (unlisted, self-distributed) when the secrets
-# AMO_JWT_ISSUER and AMO_JWT_SECRET are set; otherwise it is attached unsigned (temporary installation only).
+# JWT_USER (AMO "JWT issuer") and JWT_SECRET (AMO "JWT secret") are set; otherwise it is attached unsigned
+# (temporary installation only).
 on:
   workflow_dispatch:
     inputs:
@@ -30,7 +31,7 @@ jobs:
     env:
       VERSION: ${{ inputs.version }}
       HAS_SIGNING_CERT: ${{ secrets.CODE_SIGNING_CERT_BASE64 != '' }}
-      HAS_AMO_KEYS: ${{ secrets.AMO_JWT_ISSUER != '' && secrets.AMO_JWT_SECRET != '' }}
+      HAS_AMO_KEYS: ${{ secrets.JWT_USER != '' && secrets.JWT_SECRET != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -57,8 +58,8 @@ jobs:
         if: env.HAS_AMO_KEYS == 'true'
         shell: pwsh
         env:
-          AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
-          AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+          AMO_JWT_ISSUER: ${{ secrets.JWT_USER }}
+          AMO_JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
           $out = Join-Path $env:RUNNER_TEMP 'amo-signed'
           npx -y web-ext@8 sign --channel unlisted --source-dir artifacts/publish/Kairo/extension --artifacts-dir $out `

@@ -163,8 +163,8 @@ Firefox (Release) und Zen installieren nur von Mozilla signierte Add-ons dauerha
 signiert die XPI automatisch, wenn zwei Repository-Secrets gesetzt sind:
 1. Mit einem (kostenlosen) Mozilla-Konto unter <https://addons.mozilla.org/developers/addon/api/key/> einen
    API-Schlüssel erzeugen.
-2. Unter *Settings → Secrets and variables → Actions* anlegen: `AMO_JWT_ISSUER` (JWT-Aussteller, beginnt mit
-   `user:`) und `AMO_JWT_SECRET` (JWT-Geheimnis).
+2. Unter *Settings → Secrets and variables → Actions* anlegen: `JWT_USER` („JWT issuer“, beginnt mit `user:`)
+   und `JWT_SECRET` („JWT secret“).
 
 Signiert wird mit `web-ext sign --channel unlisted`: Die Erweiterung erscheint nicht öffentlich auf
 addons.mozilla.org, Mozilla prüft sie automatisch und liefert die signierte Datei zurück. Danach baut der
