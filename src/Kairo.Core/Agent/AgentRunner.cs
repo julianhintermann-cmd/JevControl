@@ -65,6 +65,7 @@ public sealed class AgentRunner
         public string? StopMessage { get; set; }
         public bool AnySuccessThisRound { get; set; }
         public bool VisionUnavailableReported { get; set; }
+        public int ReportedInjectionFindings { get; set; }
     }
 
     public async Task RunAsync(AgentTask task, CancellationToken cancellationToken)
@@ -297,6 +298,17 @@ public sealed class AgentRunner
         _ => "UI Automation",
     };
 
+    /// <summary>Makes suspected prompt injection visible in the task log (source only, no content).</summary>
+    private static void ReportInjectionFindings(RunState run)
+    {
+        var findings = run.Security.InjectionFindings;
+        foreach (var source in findings.Skip(run.ReportedInjectionFindings).Select(f => f.Source).Distinct())
+        {
+            run.Task.AddLog(TaskLogKind.Warning, $"Mögliche Prompt-Injection in {source}: Der Inhalt wird nur als Daten behandelt, sensible Aktionen brauchen wieder eine Freigabe.");
+        }
+        run.ReportedInjectionFindings = findings.Count;
+    }
+
     private PlanningInput BuildPlanningInput(RunState run, bool first)
     {
         string? uiState = null;
@@ -310,6 +322,7 @@ public sealed class AgentRunner
             uiState = run.Security.Untrusted.Wrap($"ui:{snapshot.Window.ProcessName}", formatted);
         }
 
+        ReportInjectionFindings(run);
         var notes = run.Notes.ToList();
         if (run.Security.InjectionSuspected && first)
         {

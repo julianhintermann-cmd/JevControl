@@ -24,7 +24,7 @@ public sealed class UiaPerceptionProvider : IPerceptionProvider
         P.UIA_ClassNamePropertyId, P.UIA_BoundingRectanglePropertyId, P.UIA_IsEnabledPropertyId, P.UIA_IsOffscreenPropertyId,
         P.UIA_IsPasswordPropertyId, P.UIA_HasKeyboardFocusPropertyId, P.UIA_IsKeyboardFocusablePropertyId, P.UIA_HelpTextPropertyId,
         P.UIA_IsRequiredForFormPropertyId, P.UIA_FrameworkIdPropertyId, P.UIA_AriaRolePropertyId, P.UIA_AriaPropertiesPropertyId,
-        P.UIA_LabeledByPropertyId, P.UIA_FullDescriptionPropertyId,
+        P.UIA_LabeledByPropertyId, P.UIA_FullDescriptionPropertyId, P.UIA_NativeWindowHandlePropertyId,
         P.UIA_IsValuePatternAvailablePropertyId, P.UIA_IsInvokePatternAvailablePropertyId, P.UIA_IsTogglePatternAvailablePropertyId,
         P.UIA_IsExpandCollapsePatternAvailablePropertyId, P.UIA_IsSelectionItemPatternAvailablePropertyId,
         P.UIA_IsScrollPatternAvailablePropertyId, P.UIA_IsRangeValuePatternAvailablePropertyId, P.UIA_IsTextPatternAvailablePropertyId,
@@ -362,12 +362,34 @@ public sealed class UiaPerceptionProvider : IPerceptionProvider
             Password = password,
             Required = SafeBool(e, P.UIA_IsRequiredForFormPropertyId) || aria.Contains("required=true", StringComparison.OrdinalIgnoreCase),
             ReadOnly = readOnly,
-            Multiline = role == ElementRole.Document || aria.Contains("multiline=true", StringComparison.OrdinalIgnoreCase),
+            Multiline = IsMultiline(e, role, className, aria, bounds, window),
             Checked = isChecked,
             Expanded = expanded,
             Bounds = bounds,
             InputHint = hint,
         };
+    }
+
+    /// <summary>
+    /// Multi-line fields accept Enter as a line break; in single-line fields Enter could submit a form, so
+    /// newlines are only typed as Enter when the field is known to be multi-line.
+    /// </summary>
+    private static bool IsMultiline(IUIAutomationElement e, ElementRole role, string className, string aria, ScreenRect bounds, WindowInfo window)
+    {
+        if (role == ElementRole.Document || aria.Contains("multiline=true", StringComparison.OrdinalIgnoreCase)) { return true; }
+        if (role != ElementRole.Edit) { return false; }
+
+        // Win32 / WinForms edit controls: the ES_MULTILINE window style is authoritative.
+        if (SafeValue(e, P.UIA_NativeWindowHandlePropertyId) is int hwnd && hwnd != 0 &&
+            className.Contains("edit", StringComparison.OrdinalIgnoreCase))
+        {
+            return ((long)Interop.NativeMethods.GetWindowLongPtr(hwnd, Interop.NativeMethods.GWL_STYLE) & Interop.NativeMethods.ES_MULTILINE) != 0;
+        }
+
+        // WPF / XAML / web text boxes expose no multi-line property: a field taller than about two text lines is multi-line.
+        var dpi = window.Handle != 0 ? Interop.NativeMethods.GetDpiForWindow(window.Handle) : 0;
+        var scale = dpi > 0 ? dpi / 96.0 : 1.0;
+        return bounds.Height > 52 * scale;
     }
 
     public Task<IReadOnlyDictionary<string, ElementState>> ReadStatesAsync(UiSnapshot snapshot, IReadOnlyCollection<UiElement> elements, CancellationToken cancellationToken) =>

@@ -1,0 +1,45 @@
+name: UI screenshots
+
+# Manually triggered: renders all main UI states (overlay modes, onboarding, settings pages) in light and dark
+# theme on Windows and commits them to docs/screenshots on the branch the workflow was started for.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  screenshots:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build Kairo
+        run: dotnet build src/Kairo.App/Kairo.App.csproj -c Release
+
+      - name: Render screenshots
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem src/Kairo.App/bin/Release -Recurse -Filter Kairo.exe | Select-Object -First 1
+          $out = Join-Path $PWD "docs/screenshots"
+          if (Test-Path $out) { Remove-Item $out -Recurse -Force }
+          $p = Start-Process $exe.FullName -ArgumentList "--screenshots", $out -PassThru -Wait
+          if (Test-Path "$out/error.txt") { Get-Content "$out/error.txt" | Write-Host }
+          if ($p.ExitCode -ne 0) { throw "Screenshot mode failed with exit code $($p.ExitCode)" }
+          Get-ChildItem $out | Select-Object Name, Length | Format-Table | Out-String | Write-Host
+
+      - name: Commit screenshots
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/screenshots
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) { "No changes."; exit 0 }
+          git commit -m "Update UI screenshots (rendered on windows-latest)"
+          git push origin "HEAD:${{ github.ref_name }}"

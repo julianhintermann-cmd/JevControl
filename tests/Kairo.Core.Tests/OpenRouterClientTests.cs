@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json.Nodes;
 using Kairo.Core.AI;
+using Kairo.Core.AI.Jev;
 using Kairo.Core.AI.OpenRouter;
 using Kairo.Core.AI.Planning;
 using Kairo.Core.Telemetry;
@@ -142,5 +143,67 @@ public class OpenRouterClientTests
         var client = new OpenRouterClient(http, new UsageTracker(KairoLogger.Null), KairoLogger.Null);
         await Assert.ThrowsAsync<InvalidOperationException>(() => client.CompleteAsync(new ChatRequest { Model = "m", Messages = [ChatMessage.User("x")] }, CancellationToken.None));
         Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task Api_key_setup_connection_test_checks_key_models_and_jev()
+    {
+        const string key = "sk-or-v1-0123456789abcdef0123456789abcdef";
+        var handler = new FakeHttpHandler
+        {
+            Default = (request, _) =>
+            {
+                var path = request.RequestUri!.AbsolutePath;
+                var json = path switch
+                {
+                    "/api/v1/key" => """{"data":{"label":"sk-or-v1-012...","usage":0.5,"limit":10,"limit_remaining":9.5}}""",
+                    "/api/v1/models" => """
+                        {"data":[{"id":"anthropic/claude-sonnet-5","architecture":{"input_modalities":["text","image"]},"supported_parameters":["structured_outputs"],
+                                  "pricing":{"prompt":"0.000003","completion":"0.000015"}}]}
+                        """,
+                    "/api/alpha/decisions" => """
+                        {"answers":{"is_statement":{"type":"noul","noul":0.97}},"model":"typesafe/jev-1.13","usage":{"input_tokens":40,"output_tokens":1,"cost":0.0000017}}
+                        """,
+                    _ => """{"error":{"message":"unexpected"}}""",
+                };
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json") };
+            },
+        };
+        var http = new OpenRouterHttp(new OpenRouterOptions { RetryBaseDelay = TimeSpan.FromMilliseconds(1) }, () => key, KairoLogger.Null, handler);
+        var usage = new UsageTracker(KairoLogger.Null);
+        var tester = new ConnectionTester(new OpenRouterClient(http, usage, KairoLogger.Null), new JevClient(http, usage, KairoLogger.Null));
+
+        var report = await tester.TestAsync("anthropic/claude-sonnet-5", "~typesafe/jev-latest", "anthropic/claude-sonnet-5", CancellationToken.None);
+
+        Assert.True(report.KeyValid);
+        Assert.Contains("9.50", report.KeyMessage);
+        Assert.True(report.AllAvailable, string.Join("; ", report.Models.Select(m => $"{m.Role}: {m.Message}")));
+        Assert.Contains(report.Models, m => m.Role.StartsWith("Entscheidungsmodell", StringComparison.Ordinal) && m.Message.Contains("typesafe/jev-1.13"));
+        Assert.Contains(handler.Requests, r => r.Request.RequestUri!.ToString() == "https://openrouter.ai/api/alpha/decisions");
+
+        // The key only travels in the Authorization header over HTTPS – never in URLs or bodies.
+        Assert.All(handler.Requests, r =>
+        {
+            Assert.Equal("https", r.Request.RequestUri!.Scheme);
+            Assert.Equal($"Bearer {key}", r.Request.Headers.Authorization!.ToString());
+            Assert.DoesNotContain(key, r.Request.RequestUri.ToString());
+            Assert.DoesNotContain(key, r.Body ?? "");
+        });
+    }
+
+    [Fact]
+    public async Task Api_key_setup_reports_an_invalid_key_in_plain_language()
+    {
+        var handler = new FakeHttpHandler().Enqueue(HttpStatusCode.Unauthorized, """{"error":{"code":401,"message":"User not found."}}""");
+        var http = new OpenRouterHttp(new OpenRouterOptions(), () => "sk-or-v1-invalid", KairoLogger.Null, handler);
+        var usage = new UsageTracker(KairoLogger.Null);
+        var tester = new ConnectionTester(new OpenRouterClient(http, usage, KairoLogger.Null), new JevClient(http, usage, KairoLogger.Null));
+
+        var report = await tester.TestAsync("anthropic/claude-sonnet-5", "~typesafe/jev-latest", null, CancellationToken.None);
+
+        Assert.False(report.KeyValid);
+        Assert.False(report.AllAvailable);
+        Assert.Contains("Schlüssel", report.KeyMessage);
+        Assert.Single(handler.Requests); // no further calls with an invalid key
     }
 }

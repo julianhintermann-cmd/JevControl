@@ -29,6 +29,7 @@ internal static partial class NativeMethods
     public const int SW_RESTORE = 9;
 
     public const int GWL_STYLE = -16;
+    public const long ES_MULTILINE = 0x0004;
     public const int GWL_EXSTYLE = -20;
     public const long WS_VISIBLE = 0x10000000L;
     public const long WS_EX_TOOLWINDOW = 0x00000080L;

@@ -270,6 +270,7 @@ public class AgentRunnerTests
         var approval = Assert.Single(harness.Interaction.Approvals);
         Assert.Contains(approval.Reasons, r => r.Contains("versteckte Anweisungen"));
         Assert.Contains("Warning: some untrusted content", FakeChatModel.LastUserText(harness.Chat.Requests[0]));
+        Assert.Contains(task.Log, e => e.Kind == TaskLogKind.Warning && e.Text.Contains("Mögliche Prompt-Injection", StringComparison.Ordinal));
         Assert.Equal(AgentTaskState.Completed, task.State);
     }
 
