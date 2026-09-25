@@ -299,7 +299,7 @@ public sealed class PermissionManager
     private static PermissionDecision Build(AgentAction action, UiElement? element, UiSnapshot? snapshot, RiskLevel level, bool requiresApproval, List<string> reasons, double? jev)
     {
         var target = element?.DisplayLabel is { Length: > 0 } label ? $"„{label}“" : action.TargetLabel is { Length: > 0 } tl ? $"„{tl}“" : null;
-        var app = snapshot?.Window.ProcessName;
+        var app = snapshot?.Window.AppName;
         var title = level switch
         {
             RiskLevel.Forbidden => "Aktion gesperrt",

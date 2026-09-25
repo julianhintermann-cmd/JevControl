@@ -57,7 +57,7 @@ public static class UiScreenshots
                 count += await SaveAsync(overlay, outputDirectory, $"overlay-running-{suffix}.png");
 
                 vm.ApprovalTitle = "Sensible Aktion freigeben?";
-                vm.ApprovalDescription = "Kairo klickt auf „Absenden“ in chrome.";
+                vm.ApprovalDescription = "Kairo klickt auf „Absenden“ in Google Chrome.";
                 vm.ApprovalReasons = "• Schaltfläche „Absenden“ sendet oder bestätigt etwas.";
                 vm.ApprovalRisk = "sensibel";
                 vm.CanAllowForTask = true;

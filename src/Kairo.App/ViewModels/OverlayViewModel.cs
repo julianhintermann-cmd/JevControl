@@ -124,13 +124,8 @@ public sealed partial class OverlayViewModel : ObservableObject, IUserInteractio
         }
     }
 
-    private static string FriendlyName(WindowInfo w) => w.BrowserKind switch
-    {
-        BrowserKind.Chrome => "Google Chrome",
-        BrowserKind.Edge => "Microsoft Edge",
-        BrowserKind.Firefox => "Firefox",
-        _ => string.IsNullOrWhiteSpace(w.Title) ? w.ProcessName : SnapshotTitle(w.Title),
-    };
+    private static string FriendlyName(WindowInfo w) =>
+        w.AppName != w.ProcessName || string.IsNullOrWhiteSpace(w.Title) ? w.AppName : SnapshotTitle(w.Title);
 
     private static string SnapshotTitle(string title) => title.Length > 48 ? title[..47] + "…" : title;
 

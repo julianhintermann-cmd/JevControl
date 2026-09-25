@@ -446,7 +446,7 @@ public sealed class AgentRunner
         if (decision.Blocked)
         {
             var reason = string.Join(" ", decision.Reasons);
-            run.Task.AddLog(TaskLogKind.Warning, $"Gesperrt: {PermissionManager.DescribeAction(step, element?.DisplayLabel, run.Snapshot?.Window.ProcessName)} {reason}", false);
+            run.Task.AddLog(TaskLogKind.Warning, $"Gesperrt: {PermissionManager.DescribeAction(step, element?.DisplayLabel, run.Snapshot?.Window.AppName)} {reason}", false);
             run.Outcomes.Add(new StepOutcome(step, false, $"blocked by Kairo's security policy: {reason}", false));
             run.NeedReplan = true;
             run.Loop.Register(step, element);

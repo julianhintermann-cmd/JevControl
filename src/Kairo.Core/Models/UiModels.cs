@@ -110,6 +110,17 @@ public sealed record WindowInfo
     };
 
     public string DisplayName => string.IsNullOrWhiteSpace(Title) ? ProcessName : $"{Title} ({ProcessName})";
+
+    private static readonly Dictionary<string, string> KnownApps = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["chrome"] = "Google Chrome", ["msedge"] = "Microsoft Edge", ["firefox"] = "Firefox", ["brave"] = "Brave",
+        ["notepad"] = "Editor", ["explorer"] = "Explorer", ["winword"] = "Word", ["excel"] = "Excel",
+        ["powerpnt"] = "PowerPoint", ["outlook"] = "Outlook", ["olk"] = "Outlook", ["ms-teams"] = "Teams",
+        ["calc"] = "Rechner", ["calculatorapp"] = "Rechner", ["mspaint"] = "Paint", ["acrobat"] = "Adobe Acrobat",
+    };
+
+    /// <summary>User-facing application name ("Google Chrome" instead of "chrome").</summary>
+    public string AppName => KnownApps.TryGetValue(ProcessName, out var name) ? name : ProcessName;
 }
 
 public enum BrowserKind

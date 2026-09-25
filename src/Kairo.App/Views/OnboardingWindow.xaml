@@ -79,22 +79,7 @@
                          Visibility="{Binding RevealKey, Converter={StaticResource InverseBoolToVisibility}}" />
             <TextBox x:Name="KeyText" Text="{Binding ApiKey, UpdateSourceTrigger=PropertyChanged}" c:Ui.Placeholder="sk-or-v1-…" FontFamily="Consolas"
                      Visibility="{Binding RevealKey, Converter={StaticResource BoolToVisibility}}" AutomationProperties.Name="OpenRouter API-Schlüssel (sichtbar)" />
-            <ToggleButton Grid.Column="1" Margin="6,0,0,0" IsChecked="{Binding RevealKey}" ToolTip="Schlüssel anzeigen" Width="36" Height="32" Cursor="Hand"
-                          AutomationProperties.Name="Schlüssel anzeigen">
-              <ToggleButton.Template>
-                <ControlTemplate TargetType="ToggleButton">
-                  <Border x:Name="Root" Background="{DynamicResource Kairo.Control.Fill}" BorderBrush="{DynamicResource Kairo.Control.Stroke}" BorderThickness="1" CornerRadius="4">
-                    <TextBlock x:Name="Glyph" Text="&#xE890;" Style="{StaticResource Kairo.Text.Icon}" FontSize="14" HorizontalAlignment="Center" />
-                  </Border>
-                  <ControlTemplate.Triggers>
-                    <Trigger Property="IsChecked" Value="True">
-                      <Setter TargetName="Glyph" Property="Text" Value="&#xED1A;" />
-                      <Setter TargetName="Root" Property="Background" Value="{DynamicResource Kairo.Accent.Subtle}" />
-                    </Trigger>
-                  </ControlTemplate.Triggers>
-                </ControlTemplate>
-              </ToggleButton.Template>
-            </ToggleButton>
+            <ToggleButton Grid.Column="1" Margin="6,0,0,0" IsChecked="{Binding RevealKey}" Style="{StaticResource Kairo.RevealToggle}" />
             <Button Grid.Column="2" Content="Verbindung testen" c:Ui.Icon="&#xE72C;" Command="{Binding TestCommand}" Margin="6,0,0,0" />
           </Grid>
           <TextBlock Text="Ein Schlüssel ist bereits gespeichert. Lass das Feld leer, um ihn zu behalten." Style="{StaticResource Kairo.Text.Caption}" Margin="0,6,0,0"

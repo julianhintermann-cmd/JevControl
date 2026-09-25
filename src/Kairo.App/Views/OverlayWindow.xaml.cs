@@ -84,6 +84,12 @@ public partial class OverlayWindow : Window
             Top = -32000;
             Show();
             UpdateLayout();
+            // Exercise the same code paths as a real opening (monitor lookup, animations) while invisible.
+            Position(compact: false);
+            BeginAnimation(OpacityProperty, new DoubleAnimation(0, 0, TimeSpan.FromMilliseconds(1)));
+            SlideTransform.BeginAnimation(System.Windows.Media.TranslateTransform.YProperty, new DoubleAnimation(0, 0, TimeSpan.FromMilliseconds(1)));
+            BeginAnimation(OpacityProperty, null);
+            SlideTransform.BeginAnimation(System.Windows.Media.TranslateTransform.YProperty, null);
             Hide();
         }
         finally
@@ -94,18 +100,30 @@ public partial class OverlayWindow : Window
     }
 
     // ------------------------------------------------------------------ show / hide
+    /// <summary>Duration of the phases of the last <see cref="ShowForInput"/> call (diagnostics, no content).</summary>
+    public string LastOpenTimings { get; private set; } = "";
+
     public void ShowForInput(nint anchorWindow)
     {
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var marks = new List<string>(6);
+        void Mark(string phase) => marks.Add($"{phase} {watch.Elapsed.TotalMilliseconds:0} ms");
+
         _autoHide.Stop();
         _anchorWindow = anchorWindow;
         if (_vm.Mode is OverlayMode.Result) { _vm.NewTaskCommand.Execute(null); }
         SetNoActivate(false);
         Width = _vm.Mode == OverlayMode.Input ? FullWidth : CompactWidth;
         ShowAnimated();
+        Mark("show");
         Position(compact: _vm.Mode is OverlayMode.Running);
+        Mark("position");
         Activate();
         Kairo.Windows.Windows.WindowService.ForceForeground(_hwnd);
+        Mark("activate");
         FocusForInteraction();
+        Mark("focus");
+        LastOpenTimings = string.Join(", ", marks);
     }
 
     public void HideOverlay()

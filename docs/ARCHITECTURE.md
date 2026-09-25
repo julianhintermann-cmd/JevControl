@@ -44,6 +44,7 @@ Enter ──────► TaskManager.Start ─► AgentRunner.RunAsync
        Ausführung: DOM-Batch (Erweiterung) │ UIA-Patterns │ SendInput-Fallback │ Vision-Koordinaten
                                               ▼
        Verifikation: gezieltes Rücklesen der geänderten Felder ─► Korrektur mit simulierter Eingabe
+                     (vor jedem Klick/Absenden und am Ende der Runde – nie wird mit falschen Werten abgesendet)
                                               ▼
        after_steps = verify_and_finish ─► Jev-noul „Ziel erreicht?“ ─► Completed
        after_steps = replan / Strukturwechsel ─► neuer Snapshot (nur falls invalidiert) ─► Planer
@@ -114,6 +115,13 @@ Oberfläche wird deshalb nicht erneut ausgelesen.
 
 Mehrere Formularfelder werden als **ein Batch** ausgeführt (DOM `actBatch`: ein Round-Trip). Es gibt keinen
 Modellaufruf pro Feld oder Zeichen.
+
+Vor einem Schritt, der absenden, navigieren oder etwas öffnen kann (Klick), führt Kairo den offenen Batch aus,
+liest die Werte zurück und korrigiert sie. Erst danach folgt die Freigabe. Lässt sich ein Wert nicht bestätigen,
+wird nicht geklickt, sondern mit der konkreten Ursache neu geplant.
+
+Simulierte Eingaben (SendInput) gehen nur an das Zielfenster. Lässt es sich nicht in den Vordergrund holen oder
+blockiert ein Dialog das Feld, schlägt der Schritt fehl, statt „blind“ zu tippen.
 
 ## KI-Schicht
 

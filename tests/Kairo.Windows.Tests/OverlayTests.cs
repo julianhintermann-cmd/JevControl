@@ -36,7 +36,9 @@ public class OverlayTests
             var vm = new OverlayViewModel();
             var overlay = new OverlayWindow(vm, theme, () => settings);
             overlay.Prepare();
+            var windows0 = new WindowService(KairoLogger.Null);
             overlay.WarmUp(); // like App.OnStartup
+            _ = windows0.GetForegroundWindow();
             var windows = new WindowService(KairoLogger.Null) { IncludeOwnWindows = true };
             var diagnostics = new List<string>();
             overlay.Deactivated += (_, _) =>
@@ -62,11 +64,20 @@ public class OverlayTests
 
             var stopwatch = new Stopwatch();
             TaskCompletionSource<double>? opened = null;
-            Assert.Equal(HotkeyRegistrationResult.Registered, hotkeys.Register(binding, () => dispatcher.BeginInvoke(() =>
+            var phases = new List<string>();
+            Assert.Equal(HotkeyRegistrationResult.Registered, hotkeys.Register(binding, () =>
             {
-                overlay.ShowForInput(windows.GetForegroundWindow()?.Handle ?? 0);
-                opened?.TrySetResult(stopwatch.Elapsed.TotalMilliseconds);
-            }), out _));
+                phases.Add($"WM_HOTKEY {stopwatch.Elapsed.TotalMilliseconds:0} ms");
+                dispatcher.BeginInvoke(() =>
+                {
+                    phases.Add($"dispatcher {stopwatch.Elapsed.TotalMilliseconds:0} ms");
+                    var anchor = windows.GetForegroundWindow()?.Handle ?? 0;
+                    phases.Add($"anchor {stopwatch.Elapsed.TotalMilliseconds:0} ms");
+                    overlay.ShowForInput(anchor);
+                    phases.Add($"overlay [{overlay.LastOpenTimings}]");
+                    opened?.TrySetResult(stopwatch.Elapsed.TotalMilliseconds);
+                });
+            }, out _));
 
             async Task<double?> PressHotkeyAsync()
             {
@@ -122,6 +133,7 @@ public class OverlayTests
 
             overlay.CloseForShutdown();
             app.Shutdown();
+            diagnostics.Add("timings: " + string.Join("; ", phases));
             return (openMs, visible, inputMode, focused, enterHandled, typed, hiddenAfterEsc, reopenMs, reopened, Diagnostics: string.Join(" | ", diagnostics));
         });
 
@@ -135,6 +147,6 @@ public class OverlayTests
         Assert.True(result.hiddenAfterEsc, "ESC did not close the overlay. " + result.Diagnostics);
         Assert.True(result.reopenMs is not null && result.reopened, "The hotkey did not reopen the overlay. " + result.Diagnostics);
         // Measured from the simulated key press (SendInput → WM_HOTKEY → dispatcher → visible window).
-        Assert.True(result.openMs < 300, $"Overlay took {result.openMs:0} ms to open.");
+        Assert.True(result.openMs < 300, $"Overlay took {result.openMs:0} ms to open. {result.Diagnostics}");
     }
 }

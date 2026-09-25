@@ -149,7 +149,7 @@
                                Visibility="{Binding RevealKey, Converter={StaticResource InverseBoolToVisibility}}" AutomationProperties.Name="Neuer API-Schlüssel" />
                   <TextBox Text="{Binding NewApiKey, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" c:Ui.Placeholder="Neuen Schlüssel eingeben (sk-or-v1-…)"
                            Visibility="{Binding RevealKey, Converter={StaticResource BoolToVisibility}}" />
-                  <CheckBox Grid.Column="1" Content="Anzeigen" IsChecked="{Binding RevealKey}" Margin="12,0,0,0" VerticalAlignment="Center" />
+                  <ToggleButton Grid.Column="1" IsChecked="{Binding RevealKey}" Margin="6,0,0,0" VerticalAlignment="Center" Style="{StaticResource Kairo.RevealToggle}" />
                   <Button Grid.Column="2" Content="Speichern" Style="{StaticResource Kairo.Button.Accent}" Command="{Binding SaveKeyCommand}" Margin="12,0,0,0" />
                 </Grid>
                 <StackPanel Orientation="Horizontal" Margin="34,10,0,0">

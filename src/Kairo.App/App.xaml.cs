@@ -118,7 +118,12 @@ public partial class App : Application, IAppHost
 
         _overlay = new OverlayWindow(_overlayVm, _theme, () => Runtime.Settings.Current);
         _overlay.Prepare();
-        Dispatcher.BeginInvoke(() => _overlay?.WarmUp(), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+        Dispatcher.BeginInvoke(() =>
+        {
+            // Pay one-time costs (template loading, JIT, window/process queries) now instead of on the first hotkey press.
+            _overlay?.WarmUp();
+            _ = _runtime?.Windows.GetForegroundWindow();
+        }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
         _overlayVm.SettingsRequested += (_, _) => ShowSettings();
 
         _hotkeys = new GlobalHotkeyManager(_runtime.Log);
@@ -220,17 +225,25 @@ public partial class App : Application, IAppHost
         var target = _runtime.Windows.GetForegroundWindow();
         if (target is not null && target.ProcessId == Environment.ProcessId) { target = _overlayVm.TargetWindow; }
 
-        if (!_overlayVm.IsBusy)
+        var prepare = !_overlayVm.IsBusy;
+        if (prepare) { _overlayVm.PrepareForInput(target, null); }
+
+        // Show first – everything else happens while the user starts typing.
+        _overlay.ShowForInput(target?.Handle ?? 0);
+
+        if (prepare)
         {
-            _overlayVm.PrepareForInput(target, IconHelper.FromExecutable(target?.ExecutablePath));
             if (target is not null && _runtime.Settings.Current.Control.PrefetchOnOverlayOpen && _runtime.HasApiKey)
             {
                 // Speculative perception while the user types: local only, nothing is sent anywhere.
                 _runtime.Perception.Prefetch(target);
             }
             _ = _runtime.Http.WarmUpAsync(CancellationToken.None);
+            Dispatcher.BeginInvoke(() =>
+            {
+                if (_overlayVm.TargetWindow == target) { _overlayVm.TargetAppIcon = IconHelper.FromExecutable(target?.ExecutablePath); }
+            }, System.Windows.Threading.DispatcherPriority.Background);
         }
-        _overlay.ShowForInput(target?.Handle ?? 0);
     }
 
     private void EmergencyStop()

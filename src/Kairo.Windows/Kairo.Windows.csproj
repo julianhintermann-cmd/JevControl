@@ -10,7 +10,6 @@
 
   <ItemGroup>
     <PackageReference Include="Interop.UIAutomationClient" />
-    <PackageReference Include="System.Security.Cryptography.ProtectedData" />
   </ItemGroup>
 
   <ItemGroup>

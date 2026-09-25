@@ -62,7 +62,8 @@ public class BrowserBridgeTests
         Skip.If(hostExe is null, "Kairo.BrowserHost.exe not built.");
 
         var pipe = "kairo-test-" + Guid.NewGuid().ToString("N");
-        await using var server = new BrowserBridgeServer(KairoLogger.Null, hostExe, pipe);
+        using var log = new KairoLogger(null, KairoLogLevel.Debug);
+        await using var server = new BrowserBridgeServer(log, hostExe, pipe);
         var connected = new TaskCompletionSource<BrowserConnection>(TaskCreationOptions.RunContinuationsAsynchronously);
         server.Connected += (_, c) => connected.TrySetResult(c);
         server.Start();
@@ -75,7 +76,14 @@ public class BrowserBridgeTests
             await WriteNativeAsync(toHost, """{"type":"hello","browser":"edge","extensionVersion":"1.0.0"}""");
 
             var winner = await Task.WhenAny(connected.Task, Task.Delay(TimeSpan.FromSeconds(10)));
-            Assert.True(winner == connected.Task, "The bridge did not report a connection from Kairo.BrowserHost.exe.");
+            if (winner != connected.Task)
+            {
+                string? hostSaid = null;
+                try { hostSaid = (await ReadNativeAsync(fromHost, TimeSpan.FromSeconds(2)))?.ToJsonString(); }
+                catch (Exception ex) when (ex is OperationCanceledException or EndOfStreamException or IOException) { }
+                Assert.Fail($"The bridge did not report a connection from Kairo.BrowserHost.exe. Host exited: {host.HasExited}, host said: {hostSaid ?? "-"}, " +
+                    $"server log: {string.Join(" | ", log.Recent.Select(e => $"{e.Category}: {e.Message}"))}");
+            }
             var connection = await connected.Task;
             Assert.Equal("edge", connection.Browser);
 

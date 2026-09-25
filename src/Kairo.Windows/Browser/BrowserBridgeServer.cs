@@ -165,7 +165,9 @@ public sealed class BrowserBridgeServer : IAsyncDisposable
         var security = new PipeSecurity();
         var user = WindowsIdentity.GetCurrent().User!;
         security.SetOwner(user);
-        security.AddAccessRule(new PipeAccessRule(user, PipeAccessRights.ReadWrite | PipeAccessRights.CreateNewInstance, AccessControlType.Allow));
+        // FullControl for the current user only – like PipeOptions.CurrentUserOnly does internally. ReadWrite alone
+        // lacks SYNCHRONIZE, which NamedPipeClientStream requests, so the host would get "access denied".
+        security.AddAccessRule(new PipeAccessRule(user, PipeAccessRights.FullControl, AccessControlType.Allow));
         return NamedPipeServerStreamAcl.Create(_pipeName, PipeDirection.InOut, NamedPipeServerStream.MaxAllowedServerInstances,
             PipeTransmissionMode.Byte, PipeOptions.Asynchronous, 64 * 1024, 64 * 1024, security);
     }
