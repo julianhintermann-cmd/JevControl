@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <title>Kontakt – Muster AG</title>
+  <style>
+    body { font-family: "Segoe UI", sans-serif; margin: 32px; max-width: 640px; }
+    label { display: block; margin-top: 12px; font-weight: 600; }
+    input, select, textarea { width: 100%; padding: 6px; font-size: 15px; box-sizing: border-box; }
+    .row { display: flex; gap: 12px; } .row > div { flex: 1; }
+    .check label { display: inline; font-weight: 400; } .check input { width: auto; }
+    button { margin-top: 16px; padding: 8px 20px; font-size: 15px; }
+  </style>
+</head>
+<body>
+  <h1>Kontaktformular</h1>
+  <p>Wir melden uns innerhalb von 24 Stunden bei Ihnen.</p>
+  <form method="post" action="/submit">
+    <fieldset>
+      <legend>Ihre Kontaktdaten</legend>
+      <div class="row">
+        <div><label for="vorname">Vorname</label><input id="vorname" name="vorname" autocomplete="given-name" required /></div>
+        <div><label for="nachname">Nachname</label><input id="nachname" name="nachname" autocomplete="family-name" required /></div>
+      </div>
+      <label for="email">E-Mail</label><input id="email" name="email" type="email" autocomplete="email" required />
+      <label for="telefon">Telefon</label><input id="telefon" name="telefon" type="tel" autocomplete="tel" />
+      <label for="firma">Firma</label><input id="firma" name="firma" autocomplete="organization" />
+      <label for="land">Land</label>
+      <select id="land" name="land">
+        <option value="">Bitte wählen</option>
+        <option value="CH">Schweiz</option>
+        <option value="DE">Deutschland</option>
+        <option value="AT">Österreich</option>
+      </select>
+    </fieldset>
+    <label for="nachricht">Nachricht</label><textarea id="nachricht" name="nachricht" rows="4"></textarea>
+    <div class="check"><input id="datenschutz" name="datenschutz" type="checkbox" value="ja" required /> <label for="datenschutz">Ich akzeptiere die Datenschutzerklärung</label></div>
+    <button type="submit">Absenden</button>
+  </form>
+</body>
+</html>

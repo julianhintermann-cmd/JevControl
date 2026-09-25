@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>$(WindowsTfm)</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>Kairo.TestTargetApp</RootNamespace>
+    <Description>Native WPF contact form used as target application in Kairo's Windows integration and end-to-end tests.</Description>
+  </PropertyGroup>
+
+</Project>

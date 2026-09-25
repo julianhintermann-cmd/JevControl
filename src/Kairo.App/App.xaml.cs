@@ -46,6 +46,27 @@ public partial class App : Application, IAppHost
             return;
         }
 
+        var screenshotIndex = Array.FindIndex(args, a => a.Equals("--screenshots", StringComparison.OrdinalIgnoreCase));
+        if (screenshotIndex >= 0)
+        {
+            var dir = screenshotIndex + 1 < args.Length ? args[screenshotIndex + 1] : Path.Combine(Environment.CurrentDirectory, "screenshots");
+            Dispatcher.InvokeAsync(async () =>
+            {
+                try
+                {
+                    var rendered = await UiScreenshots.RenderAsync(dir);
+                    Shutdown(rendered > 0 ? 0 : 1);
+                }
+                catch (Exception ex)
+                {
+                    Directory.CreateDirectory(dir);
+                    File.WriteAllText(Path.Combine(dir, "error.txt"), ex.ToString());
+                    Shutdown(2);
+                }
+            });
+            return;
+        }
+
         if (args.Contains("--uninstall-cleanup", StringComparer.OrdinalIgnoreCase))
         {
             var code = CommandLineActions.RunUninstallCleanup(

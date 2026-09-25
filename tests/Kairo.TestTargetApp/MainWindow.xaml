@@ -1,0 +1,37 @@
+<Window x:Class="Kairo.TestTargetApp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Kairo Testformular – Kontakt" Width="560" Height="640" WindowStartupLocation="CenterScreen">
+  <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <StackPanel Margin="24">
+      <TextBlock Text="Kontaktformular" FontSize="22" FontWeight="SemiBold" Margin="0,0,0,16" />
+      <GroupBox Header="Kontaktdaten" Padding="8">
+        <StackPanel>
+          <Label Content="_Vorname" Target="{Binding ElementName=FirstName}" />
+          <TextBox x:Name="FirstName" AutomationProperties.Name="Vorname" AutomationProperties.IsRequiredForForm="True" />
+          <Label Content="_Nachname" Target="{Binding ElementName=LastName}" />
+          <TextBox x:Name="LastName" AutomationProperties.Name="Nachname" AutomationProperties.IsRequiredForForm="True" />
+          <Label Content="_E-Mail" Target="{Binding ElementName=Email}" />
+          <TextBox x:Name="Email" AutomationProperties.Name="E-Mail" AutomationProperties.IsRequiredForForm="True" />
+          <Label Content="_Telefon" Target="{Binding ElementName=Phone}" />
+          <TextBox x:Name="Phone" AutomationProperties.Name="Telefon" />
+          <Label Content="_Firma" Target="{Binding ElementName=Company}" />
+          <TextBox x:Name="Company" AutomationProperties.Name="Firma" />
+          <Label Content="_Land" Target="{Binding ElementName=Country}" />
+          <ComboBox x:Name="Country" AutomationProperties.Name="Land" SelectedIndex="0">
+            <ComboBoxItem Content="Bitte wählen" />
+            <ComboBoxItem Content="Schweiz" />
+            <ComboBoxItem Content="Deutschland" />
+            <ComboBoxItem Content="Österreich" />
+          </ComboBox>
+        </StackPanel>
+      </GroupBox>
+      <Label Content="_Nachricht" Target="{Binding ElementName=Message}" Margin="0,12,0,0" />
+      <TextBox x:Name="Message" AutomationProperties.Name="Nachricht" AcceptsReturn="True" Height="80" TextWrapping="Wrap" />
+      <CheckBox x:Name="Privacy" Content="Ich akzeptiere die Datenschutzerklärung" Margin="0,12,0,0" />
+      <CheckBox x:Name="Newsletter" Content="Newsletter abonnieren" Margin="0,6,0,0" />
+      <Button x:Name="Submit" Content="Absenden" Margin="0,16,0,0" Padding="16,6" HorizontalAlignment="Left" Click="OnSubmit" />
+      <TextBlock x:Name="Status" Margin="0,12,0,0" AutomationProperties.Name="Status" />
+    </StackPanel>
+  </ScrollViewer>
+</Window>
